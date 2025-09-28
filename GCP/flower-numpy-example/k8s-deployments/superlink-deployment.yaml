@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superlink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: superlink
+  template:
+    metadata:
+      labels:
+        app: superlink
+    spec:
+      containers:
+      - name: superlink
+        image: flwr/superlink:1.22.0
+        args:
+          - "--insecure"
+          - "--isolation"
+          - "process"
+        ports:
+        - containerPort: 9091
+        - containerPort: 9092
+        - containerPort: 9093
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: superlink-service
+spec:
+  selector:
+    app: superlink
+  ports:
+  - protocol: TCP
+    port: 9091
+    targetPort: 9091
+    name: superlink-serverappioapi
+  - protocol: TCP
+    port: 9092
+    targetPort: 9092
+    name: superlink-fleetapi
+  - protocol: TCP
+    port: 9093
+    targetPort: 9093
+    name: superlink-controlapi
+  type: LoadBalancer

@@ -1,0 +1,47 @@
+# SuperNode 2
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supernode-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supernode-2
+  template:
+    metadata:
+      labels:
+        app: supernode-2
+    spec:
+      containers:
+      - name: supernode
+        image: flwr/supernode:1.22.0
+        args:
+          - "--insecure"
+          - "--superlink"
+          - "superlink-service:9092"
+          - "--clientappio-api-address"
+          - "0.0.0.0:9094"
+          - "--isolation"
+          - "process"
+        ports:
+        - containerPort: 9094
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "400m"
+          limits:
+            memory: "1Gi"
+            cpu: "800m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supernode-2-service
+spec:
+  selector:
+    app: supernode-2
+  ports:
+  - protocol: TCP
+    port: 9094
+    targetPort: 9094

@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superexec-clientapp-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: superexec-clientapp-2
+  template:
+    metadata:
+      labels:
+        app: superexec-clientapp-2
+    spec:
+      containers:
+      - name: superexec-clientapp
+        image: us-central1-docker.pkg.dev/erudite-carving-472018-r5/flower-gcp-example-artifacts/flower_numpy_example_superexec:0.0.1
+        args:
+          - "--insecure"
+          - "--appio-api-address"
+          - "supernode-2-service:9094"
+          - "--plugin-type"
+          - "clientapp"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "400m"
+          limits:
+            memory: "1Gi"
+            cpu: "800m"

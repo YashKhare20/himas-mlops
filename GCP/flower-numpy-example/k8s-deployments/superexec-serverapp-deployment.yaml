@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superexec-serverapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: superexec-serverapp
+  template:
+    metadata:
+      labels:
+        app: superexec-serverapp
+    spec:
+      containers:
+      - name: superexec-serverapp
+        image: us-central1-docker.pkg.dev/erudite-carving-472018-r5/flower-gcp-example-artifacts/flower_numpy_example_superexec:0.0.1
+        args:
+          - "--insecure"
+          - "--appio-api-address"
+          - "superlink-service:9091"
+          - "--plugin-type"
+          - "serverapp"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "400m"
+          limits:
+            memory: "1Gi"
+            cpu: "800m"
