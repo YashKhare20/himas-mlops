@@ -16,3 +16,6 @@ numpy==1.26.4
 # Development Tools
 jupyter==1.1.1
 python-dotenv==1.1.1
+
+flwr>=1.11.0
+numpy>=1.21.0

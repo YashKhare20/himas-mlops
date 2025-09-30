@@ -78,6 +78,23 @@ def get_federated_strategy() -> FedAvg:
     logger.info("Created FedAvg strategy")
     return strategy
 
+def start_federated_server(server_address: str = "0.0.0.0:8080", num_rounds: int = 3):
+    """
+    Start federated learning server for Docker deployment
+    
+    This runs the server that waits for hospital clients to connect.
+    """
+    logger.info(f"Starting HIMAS federated learning server on {server_address}")
+    logger.info(f"Training rounds: {num_rounds}")
+    
+    strategy = get_federated_strategy()
+    config = ServerConfig(num_rounds=num_rounds)
+    
+    fl.server.start_server(
+        server_address=server_address,
+        config=config,
+        strategy=strategy
+    )
 
 # Create Flower ServerApp
 app = ServerApp()

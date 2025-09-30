@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  himas-server:
+    build: .
+    container_name: himas-server
+    ports:
+      - "8080:8080"
+    command: python -c "from src.federated.flower_server import start_federated_server; start_federated_server()"
+    networks:
+      - himas-network
+    
+  hospital-1:
+    build: .
+    container_name: hospital-1
+    depends_on:
+      - himas-server
+    command: python docker_client.py 0 8
+    networks:
+      - himas-network
+    
+  hospital-2:
+    build: .
+    container_name: hospital-2
+    depends_on:
+      - himas-server  
+    command: python docker_client.py 1 10
+    networks:
+      - himas-network
+    
+  hospital-3:
+    build: .
+    container_name: hospital-3
+    depends_on:
+      - himas-server
+    command: python docker_client.py 2 12
+    networks:
+      - himas-network
+
+networks:
+  himas-network:
+    driver: bridge
