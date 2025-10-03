@@ -27,6 +27,23 @@ logger = logging.getLogger(__name__)
 
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     """Aggregate evaluation metrics from all hospitals"""
+    '''
+    Metrics format:
+    metrics = [
+    (120, {"eval_accuracy": 0.95}),  # Hospital 1: 120 test patients, 95% accurate
+    (100, {"eval_accuracy": 0.90}),  # Hospital 2: 100 test patients, 90% accurate  
+    (80,  {"eval_accuracy": 0.85})   # Hospital 3: 80 test patients, 85% accurate
+]
+Weighted average accuracy:
+accuracies = [120*0.95, 100*0.90, 80*0.85]  
+           = [114, 90, 68]  # Total correct predictions per hospital
+
+examples = [120, 100, 80]  # Total patients tested
+
+aggregated_accuracy = (114 + 90 + 68) / (120 + 100 + 80)
+                    = 272 / 300
+                    = 0.9067 = 90.67%
+    '''
     accuracies = [num_examples * m.get("eval_accuracy", 0) for num_examples, m in metrics]
     examples = [num_examples for num_examples, m in metrics]
     
@@ -68,9 +85,9 @@ def get_federated_strategy() -> FedAvg:
     strategy = FedAvg(
         fraction_fit=1.0,
         fraction_evaluate=1.0,
-        min_fit_clients=2,
-        min_evaluate_clients=2,
-        min_available_clients=2,
+        min_fit_clients=3,
+        min_evaluate_clients=3,
+        min_available_clients=3,
         initial_parameters=initial_parameters,
         evaluate_metrics_aggregation_fn=weighted_average,
     )
@@ -78,6 +95,7 @@ def get_federated_strategy() -> FedAvg:
     logger.info("Created FedAvg strategy")
     return strategy
 
+# Function to start the server (for Docker deployment)
 def start_federated_server(server_address: str = "0.0.0.0:8080", num_rounds: int = 3):
     """
     Start federated learning server for Docker deployment
@@ -96,7 +114,8 @@ def start_federated_server(server_address: str = "0.0.0.0:8080", num_rounds: int
         strategy=strategy
     )
 
-# Create Flower ServerApp
+# Create Flower ServerApp - new version (Repetetion of start_federated_server)
+'''
 app = ServerApp()
 
 
@@ -120,8 +139,9 @@ def main(context: Context) -> None:
     logger.info("="*70 + "\n")
     
     config = ServerConfig(num_rounds=num_rounds)
+'''
 
-
+## Start simulation (for local testing) - not for Docker
 class HIMASFederatedCoordinator:
     """Coordinates federated learning simulation"""
     

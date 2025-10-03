@@ -1,7 +1,5 @@
 """
-Flower federated learning client for HIMAS
-Each hospital runs this client to participate in federated learning
-Uses Flower 1.11.0 API
+This entire file is not needed for docker - we use docker_client.py instead
 """
 
 import numpy as np
@@ -28,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Global cache for hospital data
 hospital_data_cache = {}
 
-
+#Cache is useful for simulation mode - it avoids reloading data multiple times, it is not needed for docker mode, but doesnt hurt
 def load_client_data(partition_id: int):
     """Load hospital data for given partition"""
     if partition_id not in hospital_data_cache:
