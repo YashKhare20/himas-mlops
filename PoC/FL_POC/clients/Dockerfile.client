@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+WORKDIR /app
+
+# context will be the 'poc' folder, so this file exists at ./requirements.txt
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+COPY clients/train_client.py /app/train_client.py
+CMD [ "python", "train_client.py" ]
