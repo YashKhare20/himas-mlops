@@ -1,0 +1,4 @@
+hospital,train_patients,val_patients,test_patients,train_val_overlap,train_test_overlap,val_test_overlap
+Hospital A,27,8,7,0,0,0
+Hospital B,17,6,4,0,0,0
+Hospital C,21,6,4,0,0,0

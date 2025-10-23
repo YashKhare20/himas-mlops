@@ -1,0 +1,1 @@
+🔴 HIMAS Alert: {{ti.task_id}} Failed in {{dag.dag_id}}

@@ -1,0 +1,10 @@
+hospital,data_split,n_icu_stays,n_patients,n_deaths,mortality_rate,mean_age,mean_icu_los_hours
+Hospital A,test,10,7,0,0.0,60.4,125.5
+Hospital A,train,36,27,2,0.0556,61.7,69.9
+Hospital A,validation,9,8,3,0.3333,63.9,127.1
+Hospital B,test,4,4,1,0.25,49.5,112.5
+Hospital B,train,18,17,3,0.1667,61.1,95.7
+Hospital B,validation,8,6,0,0.0,61.4,105.8
+Hospital C,test,5,4,1,0.2,61.4,113.6
+Hospital C,train,32,21,4,0.125,67.6,116.0
+Hospital C,validation,6,6,1,0.1667,62.0,91.7

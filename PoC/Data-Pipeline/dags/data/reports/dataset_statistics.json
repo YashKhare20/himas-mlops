@@ -1,0 +1,92 @@
+[
+  {
+    "hospital":"Hospital A",
+    "data_split":"test",
+    "n_icu_stays":10,
+    "n_patients":7,
+    "n_deaths":0,
+    "mortality_rate":0.0,
+    "mean_age":60.4,
+    "mean_icu_los_hours":125.5
+  },
+  {
+    "hospital":"Hospital A",
+    "data_split":"train",
+    "n_icu_stays":36,
+    "n_patients":27,
+    "n_deaths":2,
+    "mortality_rate":0.0556,
+    "mean_age":61.7,
+    "mean_icu_los_hours":69.9
+  },
+  {
+    "hospital":"Hospital A",
+    "data_split":"validation",
+    "n_icu_stays":9,
+    "n_patients":8,
+    "n_deaths":3,
+    "mortality_rate":0.3333,
+    "mean_age":63.9,
+    "mean_icu_los_hours":127.1
+  },
+  {
+    "hospital":"Hospital B",
+    "data_split":"test",
+    "n_icu_stays":4,
+    "n_patients":4,
+    "n_deaths":1,
+    "mortality_rate":0.25,
+    "mean_age":49.5,
+    "mean_icu_los_hours":112.5
+  },
+  {
+    "hospital":"Hospital B",
+    "data_split":"train",
+    "n_icu_stays":18,
+    "n_patients":17,
+    "n_deaths":3,
+    "mortality_rate":0.1667,
+    "mean_age":61.1,
+    "mean_icu_los_hours":95.7
+  },
+  {
+    "hospital":"Hospital B",
+    "data_split":"validation",
+    "n_icu_stays":8,
+    "n_patients":6,
+    "n_deaths":0,
+    "mortality_rate":0.0,
+    "mean_age":61.4,
+    "mean_icu_los_hours":105.8
+  },
+  {
+    "hospital":"Hospital C",
+    "data_split":"test",
+    "n_icu_stays":5,
+    "n_patients":4,
+    "n_deaths":1,
+    "mortality_rate":0.2,
+    "mean_age":61.4,
+    "mean_icu_los_hours":113.6
+  },
+  {
+    "hospital":"Hospital C",
+    "data_split":"train",
+    "n_icu_stays":32,
+    "n_patients":21,
+    "n_deaths":4,
+    "mortality_rate":0.125,
+    "mean_age":67.6,
+    "mean_icu_los_hours":116.0
+  },
+  {
+    "hospital":"Hospital C",
+    "data_split":"validation",
+    "n_icu_stays":6,
+    "n_patients":6,
+    "n_deaths":1,
+    "mortality_rate":0.1667,
+    "mean_age":62.0,
+    "mean_icu_los_hours":91.7
+  }
+]
