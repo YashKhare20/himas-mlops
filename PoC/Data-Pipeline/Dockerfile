@@ -23,5 +23,7 @@ USER root
 RUN chown -R airflow:root /opt/airflow && \
     chmod -R 775 /opt/airflow
 
+RUN apt-get update && apt-get install -y git
+
 # Switch to airflow user
 USER airflow
