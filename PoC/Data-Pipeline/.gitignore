@@ -24,7 +24,6 @@ airflow-webserver.pid
 *.log
 
 # Environment
-.env
 *.env.local
 
 # OS
