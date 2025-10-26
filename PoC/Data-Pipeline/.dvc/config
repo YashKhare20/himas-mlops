@@ -2,5 +2,5 @@
     autostage = true
     remote = gcs_storage
 ['remote "gcs_storage"']
-    url = gs://himas-airflow-reports/dvc-storage
+    url = gs://himas-airflow-data/dvc-storage
     projectname = erudite-carving-472018-r5
