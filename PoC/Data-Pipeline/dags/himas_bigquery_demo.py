@@ -52,7 +52,7 @@ validator = DataValidator(
 
 # DVC handler
 dvc_handler = DVCHandler(
-    repo_path="/opt/airflow/dags",
+    repo_path="/opt/airflow",
     use_gcs=config.USE_GCS,
     gcs_bucket=config.GCS_BUCKET,
     project_id=config.PROJECT_ID
@@ -83,28 +83,6 @@ def generate_statistics_task(**context):
         - storage (StorageHandler)
     """
     return validator.generate_statistics(storage, **context)
-
-
-def initialize_dvc_task(**context):
-    """
-    Task function: Initialize DVC repository and configure remote.
-
-    Uses:
-        - dvc_handler (DVCHandler)
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-
-    logger.info("Initializing DVC repository...")
-    success = dvc_handler.initialize_dvc()
-
-    if success:
-        dvc_info = dvc_handler.get_dvc_info()
-        logger.info(f"DVC Configuration: {dvc_info}")
-        context['task_instance'].xcom_push(key='dvc_initialized', value=True)
-        return dvc_info
-    else:
-        raise Exception("Failed to initialize DVC")
 
 
 def version_reports_task(**context):
@@ -216,14 +194,14 @@ def version_bigquery_layers_task(**context):
 # ============================================================================
 
 with DAG(
-    dag_id='himas_bigquery_demo_dvc',
+    dag_id='himas_bigquery_demo',
     default_args={
         'owner': 'himas',
         'depends_on_past': False,
         'email': config.ALERT_EMAILS,
         'email_on_failure': True,
         'email_on_retry': False,
-        'retries': 1,
+        'retries': 0,
     },
     description='HIMAS BigQuery Pipeline with DVC Versioning',
     schedule=None,  # Manual trigger for demos
@@ -261,21 +239,6 @@ with DAG(
     - **Versioned datasets (.dvc files)**
     """
 ) as dag:
-
-    # ========================================================================
-    # TASK GROUP 0: DVC INITIALIZATION
-    # ========================================================================
-
-    @task_group(tooltip='Initialize DVC for data versioning')
-    def initialize_dvc():
-        """Initialize DVC repository and configure remote storage."""
-
-        init_dvc = PythonOperator(
-            task_id='initialize_dvc_repo',
-            python_callable=initialize_dvc_task,
-        )
-
-        return init_dvc
 
     # ========================================================================
     # TASK GROUP 1: CREATE DATASETS
@@ -447,5 +410,5 @@ with DAG(
     # PIPELINE DEPENDENCIES
     # ========================================================================
 
-    (initialize_dvc() >> create_datasets() >> curated_layer() >>
+    (create_datasets() >> curated_layer() >>
      federated_layer() >> verification_layer() >> quality_checks() >> version_with_dvc())
