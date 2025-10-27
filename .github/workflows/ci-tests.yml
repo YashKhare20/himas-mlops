@@ -60,8 +60,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install apache-airflow==3.1.0 apache-airflow-providers-google==10.22.0
-          pip install pytest pytest-cov pytest-mock
-          pip install pylint flake8
+          pip install pylint flake8 pytest pytest-cov pytest-mock
 
       - name: Set environment variables
         run: |
