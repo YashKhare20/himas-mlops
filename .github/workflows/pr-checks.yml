@@ -17,6 +17,17 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Debug - Verify directory structure
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Repository contents:"
+        ls -la
+        echo "Checking for PoC directory:"
+        ls -la PoC/ 2>/dev/null || echo "PoC not found"
+        echo "Checking for PoC/Data-Pipeline:"
+        ls -la PoC/Data-Pipeline/ 2>/dev/null || echo "PoC/Data-Pipeline not found"
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
