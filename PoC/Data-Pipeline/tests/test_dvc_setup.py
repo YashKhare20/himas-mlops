@@ -64,14 +64,6 @@ class TestDVCSetup:
             assert dvc_file.stat().st_size > 0, \
                 f"{dvc_file} should not be empty"
 
-    def test_dvc_version_file(self):
-        """Test that DVC version is tracked"""
-        version_file = Path('.dvc/config.local')
-
-        # config.local might not exist in CI, that's OK
-        if not version_file.exists():
-            pytest.skip("config.local not in version control (expected)")
-
     def test_requirements_has_dvc(self):
         """Test that requirements.txt includes DVC"""
         req_file = Path('requirements.txt')
