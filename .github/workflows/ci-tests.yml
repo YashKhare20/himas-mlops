@@ -18,11 +18,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: PoC/Data-Pipeline
-
     services:
       postgres:
         image: postgres:13
