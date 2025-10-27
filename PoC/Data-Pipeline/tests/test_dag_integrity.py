@@ -3,7 +3,7 @@ Test DAG integrity and validation
 """
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytest
 from airflow.models import DagBag
 from airflow.utils.dag_cycle_tester import check_cycle

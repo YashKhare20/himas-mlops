@@ -10,7 +10,7 @@ on:
 jobs:
   pr-validation:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -29,20 +29,23 @@ jobs:
 
     - name: Check code formatting with Black
       run: |
+        cd PoC/Data-Pipeline
         black --check dags/ tests/ || echo "::warning::Code formatting issues found. Run 'black dags/ tests/' to fix."
       continue-on-error: true
 
     - name: Lint with flake8
       run: |
+        cd PoC/Data-Pipeline
         # Stop the build if there are Python syntax errors or undefined names
         flake8 dags/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        
+
         # Exit-zero treats all errors as warnings
         flake8 dags/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       continue-on-error: true
 
     - name: Security check with Bandit
       run: |
+        cd PoC/Data-Pipeline
         bandit -r dags/ -ll -f json -o bandit-report.json || true
         if [ -f bandit-report.json ]; then
           echo "Security scan completed. Check bandit-report.json for details."
@@ -51,6 +54,7 @@ jobs:
 
     - name: Check for secrets
       run: |
+        cd PoC/Data-Pipeline
         # Simple check for common secret patterns
         if grep -r -E '(password|secret|api_key|token)\s*=\s*["\047][^"\047]+["\047]' dags/ --exclude-dir=__pycache__; then
           echo "::error::Potential hardcoded secrets found!"
@@ -59,15 +63,17 @@ jobs:
 
     - name: Check Python version compatibility
       run: |
+        cd PoC/Data-Pipeline
         python -c "import sys; assert sys.version_info >= (3, 8), 'Python 3.8+ required'"
 
     - name: Validate requirements.txt
       run: |
+        cd PoC/Data-Pipeline
         if [ ! -f requirements.txt ]; then
           echo "::error::requirements.txt not found!"
           exit 1
         fi
-        
+
         # Check for pinned versions
         if grep -E '^[^=<>~]+$' requirements.txt | grep -v '^#' | grep -v '^$'; then
           echo "::warning::Some dependencies are not pinned to specific versions"
@@ -75,6 +81,7 @@ jobs:
 
     - name: Check for TODO/FIXME comments
       run: |
+        cd PoC/Data-Pipeline
         todos=$(grep -r -n "TODO\|FIXME\|XXX\|HACK" dags/ --exclude-dir=__pycache__ || true)
         if [ ! -z "$todos" ]; then
           echo "::notice::Found TODO/FIXME comments:"

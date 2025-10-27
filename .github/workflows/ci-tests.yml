@@ -6,10 +6,10 @@ on:
       - main
       - feature_poc
     paths:
-      - "dags/**"
-      - "tests/**"
-      - "requirements.txt"
-      - ".dvc/**"
+      - "PoC/Data-Pipeline/dags/**"
+      - "PoC/Data-Pipeline/tests/**"
+      - "PoC/Data-Pipeline/requirements.txt"
+      - "PoC/Data-Pipeline/.dvc/**"
   push:
     branches:
       - main
@@ -18,7 +18,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: PoC/Data-Pipeline
     services:
       postgres:
         image: postgres:13
@@ -49,7 +51,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('PoC/Data-Pipeline/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -62,23 +64,17 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "AIRFLOW_HOME=${GITHUB_WORKSPACE}/airflow" >> $GITHUB_ENV
-          echo "AIRFLOW__CORE__DAGS_FOLDER=${GITHUB_WORKSPACE}/dags" >> $GITHUB_ENV
-          echo "AIRFLOW__CORE__LOAD_EXAMPLES=False" >> $GITHUB_ENV
-          echo "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@localhost:5432/airflow" >> $GITHUB_ENV
-
-      - name: Initialize Airflow DB
-        run: |
-          airflow db migrate
+          echo "AIRFLOW_HOME=${GITHUB_WORKSPACE}/PoC/Data-Pipeline/airflow" >> $GITHUB_ENV
+          echo "AIRFLOW__CORE__DAGS_FOLDER=${GITHUB_WORKSPACE}/PoC/Data-Pipeline/dags" >> $GITHUB_ENV
 
       - name: Validate DAG Integrity
         run: |
           python -c "
           import sys
-          sys.path.insert(0, '${GITHUB_WORKSPACE}/dags')
+          sys.path.insert(0, '${GITHUB_WORKSPACE}/PoC/Data-Pipeline/dags')
           from airflow.models import DagBag
 
-          dag_bag = DagBag(dag_folder='${GITHUB_WORKSPACE}/dags', include_examples=False)
+          dag_bag = DagBag(dag_folder='${GITHUB_WORKSPACE}/PoC/Data-Pipeline/dags', include_examples=False)
 
           if dag_bag.import_errors:
               print('DAG Import Errors:')
