@@ -204,7 +204,7 @@ with DAG(
         'retries': 0,
     },
     description='HIMAS BigQuery Pipeline with DVC Versioning',
-    schedule=None,  # Manual trigger for demos
+    schedule=None,
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=['himas', 'bigquery', 'demo', 'modular', 'dvc'],
