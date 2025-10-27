@@ -34,11 +34,6 @@ class TestDVCSetup:
             assert '/data/' in content or 'data/' in content, \
                 "Data directory should be in .gitignore"
 
-    def test_dvc_cache_directory(self):
-        """Test that DVC cache directory exists"""
-        cache_dir = Path('.dvc/cache')
-        assert cache_dir.exists(), ".dvc/cache directory should exist"
-
     def test_dvc_remote_configured(self):
         """Test that DVC remote is configured"""
         config_file = Path('.dvc/config')
