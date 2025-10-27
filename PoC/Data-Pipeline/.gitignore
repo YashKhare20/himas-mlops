@@ -1,0 +1,43 @@
+# DVC - track .dvc files but not the data
+/dags/data/bigquery
+/dags/data/reports
+/dags/data/processed
+/dags/data/raw
+/dags/data/models
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+ENV/
+
+# Airflow
+logs/
+airflow.db
+airflow-webserver.pid
+*.pid
+*.log
+
+# Environment
+*.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+.docker/

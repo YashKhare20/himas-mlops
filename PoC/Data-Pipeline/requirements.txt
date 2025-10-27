@@ -1,0 +1,7 @@
+pandas-gbq==0.29.2
+python-dotenv==1.1.1
+requests==2.32.5
+scikit-learn==1.7.2
+sqlalchemy-bigquery==1.15.0
+dvc-gs==3.0.2
+gcsfs>=2025.1.0
