@@ -10,10 +10,6 @@ on:
       - "PoC/Data-Pipeline/tests/**"
       - "PoC/Data-Pipeline/requirements.txt"
       - "PoC/Data-Pipeline/.dvc/**"
-  push:
-    branches:
-      - main
-      - feature_poc
 
 jobs:
   test:
