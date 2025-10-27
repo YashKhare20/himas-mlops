@@ -10,11 +10,7 @@ on:
 jobs:
   pr-validation:
     runs-on: ubuntu-latest
-
-    defaults:
-    run:
-      working-directory: PoC/Data-Pipeline
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
