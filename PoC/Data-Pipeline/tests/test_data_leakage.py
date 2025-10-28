@@ -157,29 +157,39 @@ class TestSchemaValidationSetup:
         """Test that SchemaValidator can be instantiated"""
         from utils.schema_validator import SchemaValidator
 
-        validator = SchemaValidator(
-            project_id='test-project',
-            location='US'
-        )
-
-        assert validator is not None
-        assert validator.project_id == 'test-project'
-        assert validator.location == 'US'
+        # Skip if no GCP credentials (CI/CD environment)
+        try:
+            validator = SchemaValidator(
+                project_id='test-project',
+                location='US'
+            )
+            assert validator is not None
+            assert validator.project_id == 'test-project'
+            assert validator.location == 'US'
+        except Exception as e:
+            if 'DefaultCredentialsError' in str(type(e)):
+                pytest.skip(
+                    "No GCP credentials - skipping (expected in CI/CD)")
+            else:
+                raise
 
     def test_schema_validator_methods_exist(self):
         """Test that SchemaValidator has required methods"""
         from utils.schema_validator import SchemaValidator
+        import inspect
 
-        validator = SchemaValidator(project_id='test-project')
+        # Check methods exist without instantiating (avoids credentials requirement)
+        methods = inspect.getmembers(
+            SchemaValidator, predicate=inspect.isfunction)
+        method_names = [name for name, _ in methods]
 
-        # Check all required methods
-        assert hasattr(validator, 'extract_table_schema'), \
+        assert 'extract_table_schema' in method_names, \
             "SchemaValidator should have extract_table_schema method"
-        assert hasattr(validator, 'compute_table_statistics'), \
+        assert 'compute_table_statistics' in method_names, \
             "SchemaValidator should have compute_table_statistics method"
-        assert hasattr(validator, 'detect_schema_drift'), \
+        assert 'detect_schema_drift' in method_names, \
             "SchemaValidator should have detect_schema_drift method"
-        assert hasattr(validator, 'validate_data_quality'), \
+        assert 'validate_data_quality' in method_names, \
             "SchemaValidator should have validate_data_quality method"
 
     def test_schema_utils_module_exists(self):
@@ -279,15 +289,27 @@ class TestValidationDocumentation:
         """Test that validator classes have docstrings"""
         from utils.validation import DataValidator
         from utils.schema_validator import SchemaValidator
+        import inspect
 
-        # Check DataValidator
+        # Check DataValidator (can instantiate without credentials)
         data_validator = DataValidator(project_id='test-project')
         assert data_validator.verify_data_integrity.__doc__ is not None, \
             "verify_data_integrity should have docstring"
 
-        # Check SchemaValidator
-        schema_validator = SchemaValidator(project_id='test-project')
-        assert schema_validator.extract_table_schema.__doc__ is not None, \
+        # Check SchemaValidator methods without instantiating
+        methods = inspect.getmembers(
+            SchemaValidator, predicate=inspect.isfunction)
+
+        # Find extract_table_schema method
+        extract_method = None
+        for name, method in methods:
+            if name == 'extract_table_schema':
+                extract_method = method
+                break
+
+        assert extract_method is not None, \
+            "extract_table_schema method should exist"
+        assert extract_method.__doc__ is not None, \
             "extract_table_schema should have docstring"
 
 
