@@ -234,45 +234,45 @@ with DAG(
         extract_schemas = PythonOperator(
             task_id='extract_all_schemas',
             python_callable=create_extract_schemas_task_function(
-                schema_validator=get_schema_validator(),
+                schema_validator=None,
                 config=config,
-                storage_handler=get_storage_handler()
+                storage_handler=None
             ),
         )
 
         compute_stats = PythonOperator(
             task_id='compute_all_statistics',
             python_callable=create_compute_statistics_task_function(
-                schema_validator=get_schema_validator(),
+                schema_validator=None,
                 config=config,
-                storage_handler=get_storage_handler()
+                storage_handler=None
             ),
         )
 
         detect_drift = PythonOperator(
             task_id='detect_schema_drift',
             python_callable=create_detect_drift_task_function(
-                schema_validator=get_schema_validator(),
+                schema_validator=None,
                 config=config,
-                storage_handler=get_storage_handler()
+                storage_handler=None
             ),
         )
 
         validate_quality = PythonOperator(
             task_id='validate_data_quality',
             python_callable=create_validate_quality_task_function(
-                schema_validator=get_schema_validator(),
+                schema_validator=None,
                 config=config,
-                storage_handler=get_storage_handler()
+                storage_handler=None
             ),
         )
 
         generate_summary = PythonOperator(
             task_id='generate_quality_summary',
             python_callable=create_quality_summary_task_function(
-                schema_validator=get_schema_validator(),
+                schema_validator=None,
                 config=config,
-                storage_handler=get_storage_handler()
+                storage_handler=None
             ),
         )
 
@@ -289,7 +289,7 @@ with DAG(
         version_bigquery = PythonOperator(
             task_id='version_bigquery_layers',
             python_callable=create_dvc_version_bigquery_task_function(
-                dvc_handler=get_dvc_handler(),
+                dvc_handler=None,
                 config=config
             ),
         )
@@ -297,14 +297,14 @@ with DAG(
         version_reports = PythonOperator(
             task_id='version_reports',
             python_callable=create_dvc_version_reports_task_function(
-                dvc_handler=get_dvc_handler()
+                dvc_handler=None
             ),
         )
 
         version_all_data = PythonOperator(
             task_id='version_all_data',
             python_callable=create_dvc_version_all_data_task_function(
-                dvc_handler=get_dvc_handler()
+                dvc_handler=None
             ),
         )
 
