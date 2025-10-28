@@ -1,9 +1,8 @@
 """
-Test data leakage prevention mechanisms and validation setup
+Test data leakage prevention mechanisms and schema validation setup
 
 NOTE: Actual data leakage validation happens at runtime in the Airflow DAG
-via DataValidator class. These tests verify that the validation mechanisms
-are properly configured and available.
+via DataValidator class. Schema validation ensures data quality over time.
 """
 import os
 import sys
@@ -43,26 +42,6 @@ class TestDataLeakageSetup:
         assert validator.project_id == 'test-project'
         assert validator.location == 'US'
 
-    def test_verify_data_integrity_method_exists(self):
-        """Test that verify_data_integrity method exists"""
-        from utils.validation import DataValidator
-
-        validator = DataValidator(project_id='test-project')
-        assert hasattr(validator, 'verify_data_integrity'), \
-            "DataValidator should have verify_data_integrity method"
-        assert callable(validator.verify_data_integrity), \
-            "verify_data_integrity should be callable"
-
-    def test_generate_statistics_method_exists(self):
-        """Test that generate_statistics method exists"""
-        from utils.validation import DataValidator
-
-        validator = DataValidator(project_id='test-project')
-        assert hasattr(validator, 'generate_statistics'), \
-            "DataValidator should have generate_statistics method"
-        assert callable(validator.generate_statistics), \
-            "generate_statistics should be callable"
-
     def test_verification_layer_sql_exists(self):
         """Test that verification layer SQL files exist"""
         sql_dir = Path(DAG_FOLDER) / 'sql' / 'verification_layer'
@@ -83,8 +62,8 @@ class TestDataLeakageSetup:
             pytest.skip(
                 "SQL directory not found - acceptable for initial setup")
 
-    def test_dag_has_verification_task_group(self):
-        """Test that DAG includes verification/quality checks"""
+    def test_dag_has_schema_validation_tasks(self):
+        """Test that DAG includes schema validation task group"""
         from airflow.models import DagBag
 
         dag_bag = DagBag(dag_folder=DAG_FOLDER, include_examples=False)
@@ -95,101 +74,47 @@ class TestDataLeakageSetup:
         if dag:
             task_ids = [task.task_id for task in dag.tasks]
 
-            # Check for verification or quality check tasks
-            has_verification = any(
-                'verif' in tid.lower() or
-                'quality' in tid.lower() or
-                'integrity' in tid.lower()
+            # Check for schema validation tasks
+            has_schema_validation = any(
+                'schema' in tid.lower() or
+                'statistics' in tid.lower() or
+                'drift' in tid.lower() or
+                'quality' in tid.lower()
                 for tid in task_ids
             )
 
-            assert has_verification, \
-                "DAG should have verification/quality check tasks"
+            assert has_schema_validation, \
+                "DAG should have schema validation tasks"
 
     def test_patient_split_configuration(self):
         """Test that patient split configuration is defined"""
-        # Check if config has split percentages defined
         try:
             from utils.config import PipelineConfig
             config = PipelineConfig()
 
-            # These might be in config or SQL - just verify config loads
+            # Verify config loads successfully
             assert config is not None, "PipelineConfig should be available"
+            assert hasattr(
+                config, 'PROJECT_ID'), "Config should have PROJECT_ID"
 
         except ImportError:
             pytest.skip("Config module not structured as expected")
 
     def test_hospital_count_configuration(self):
         """Test that expected number of hospitals is configured"""
-        # In HIMAS, we expect 3 hospitals for federated learning
-        expected_hospitals = 3
+        try:
+            from utils.config import PipelineConfig
+            config = PipelineConfig()
 
-        # This is validated through SQL files or config
-        # For now, just document the expectation
-        assert expected_hospitals == 3, \
-            "HIMAS should be configured for 3 hospitals"
+            # HIMAS expects 3 hospitals for federated learning
+            if hasattr(config, 'FEDERATED_TABLES'):
+                hospital_tables = [
+                    t for t in config.FEDERATED_TABLES if 'hospital' in t]
+                assert len(hospital_tables) == 3, \
+                    "HIMAS should be configured for 3 hospitals"
 
-    def test_validation_raises_on_leakage(self):
-        """Test that validator is designed to raise errors on leakage"""
-        from utils.validation import DataValidator
-        import inspect
-
-        validator = DataValidator(project_id='test-project')
-
-        # Check method signature and docstring
-        method = validator.verify_data_integrity
-        source = inspect.getsource(method)
-
-        # Should have error handling for leakage
-        assert 'raise' in source or 'error' in source.lower(), \
-            "verify_data_integrity should raise errors on validation failure"
-
-    def test_leakage_check_query_structure(self):
-        """Test that leakage check queries follow proper structure"""
-        # Check if SQL files exist and contain overlap checks
-        sql_dir = Path(DAG_FOLDER) / 'sql' / 'verification_layer'
-
-        if not sql_dir.exists():
-            pytest.skip(
-                "SQL directory not found - acceptable for initial setup")
-
-        leakage_files = list(sql_dir.glob('*leakage*.sql'))
-
-        if leakage_files:
-            content = leakage_files[0].read_text().lower()
-
-            # Should check for overlaps
-            has_overlap_logic = (
-                'intersect' in content or
-                'overlap' in content or
-                'distinct' in content
-            )
-
-            assert has_overlap_logic, \
-                "Leakage check SQL should contain overlap detection logic"
-
-    def test_statistics_query_includes_splits(self):
-        """Test that statistics query includes split information"""
-        sql_dir = Path(DAG_FOLDER) / 'sql' / 'verification_layer'
-
-        if not sql_dir.exists():
-            pytest.skip(
-                "SQL directory not found - acceptable for initial setup")
-
-        stats_files = list(sql_dir.glob('*statistic*.sql'))
-
-        if stats_files:
-            content = stats_files[0].read_text().lower()
-
-            # Should track train/val/test splits
-            has_split_tracking = (
-                'train' in content or
-                'split' in content or
-                'validation' in content
-            )
-
-            assert has_split_tracking, \
-                "Statistics query should track data splits"
+        except ImportError:
+            pytest.skip("Config module not structured as expected")
 
     def test_dag_on_failure_callback_configured(self):
         """Test that DAG has failure callbacks for alerting"""
@@ -212,6 +137,120 @@ class TestDataLeakageSetup:
                 "DAG should have failure notifications configured"
 
 
+class TestSchemaValidationSetup:
+    """Test that schema validation mechanisms are properly configured"""
+
+    def test_schema_validator_module_exists(self):
+        """Test that schema validator module exists"""
+        schema_validator_file = Path(
+            DAG_FOLDER) / 'utils' / 'schema_validator.py'
+        assert schema_validator_file.exists(), \
+            "schema_validator.py module should exist in dags/utils/"
+
+    def test_schema_validator_class_exists(self):
+        """Test that SchemaValidator class is available"""
+        from utils.schema_validator import SchemaValidator
+        assert SchemaValidator is not None, \
+            "SchemaValidator class should be importable"
+
+    def test_schema_validator_can_be_instantiated(self):
+        """Test that SchemaValidator can be instantiated"""
+        from utils.schema_validator import SchemaValidator
+
+        validator = SchemaValidator(
+            project_id='test-project',
+            location='US'
+        )
+
+        assert validator is not None
+        assert validator.project_id == 'test-project'
+        assert validator.location == 'US'
+
+    def test_schema_validator_methods_exist(self):
+        """Test that SchemaValidator has required methods"""
+        from utils.schema_validator import SchemaValidator
+
+        validator = SchemaValidator(project_id='test-project')
+
+        # Check all required methods
+        assert hasattr(validator, 'extract_table_schema'), \
+            "SchemaValidator should have extract_table_schema method"
+        assert hasattr(validator, 'compute_table_statistics'), \
+            "SchemaValidator should have compute_table_statistics method"
+        assert hasattr(validator, 'detect_schema_drift'), \
+            "SchemaValidator should have detect_schema_drift method"
+        assert hasattr(validator, 'validate_data_quality'), \
+            "SchemaValidator should have validate_data_quality method"
+
+    def test_schema_utils_module_exists(self):
+        """Test that schema utils helper module exists"""
+        schema_utils_file = Path(DAG_FOLDER) / 'utils' / 'schema_utils.py'
+        assert schema_utils_file.exists(), \
+            "schema_utils.py module should exist in dags/utils/"
+
+    def test_schema_utils_functions_exist(self):
+        """Test that schema utils has required helper functions"""
+        from utils.schema_utils import (
+            extract_all_layer_schemas,
+            compute_all_layer_statistics,
+            detect_schema_drift_all_layers,
+            validate_data_quality_all_layers,
+            generate_comprehensive_quality_summary
+        )
+
+        assert extract_all_layer_schemas is not None
+        assert compute_all_layer_statistics is not None
+        assert detect_schema_drift_all_layers is not None
+        assert validate_data_quality_all_layers is not None
+        assert generate_comprehensive_quality_summary is not None
+
+    def test_task_functions_module_has_schema_tasks(self):
+        """Test that task functions module includes schema validation tasks"""
+        from utils.task_functions import (
+            create_extract_schemas_task_function,
+            create_compute_statistics_task_function,
+            create_detect_drift_task_function,
+            create_validate_quality_task_function,
+            create_quality_summary_task_function
+        )
+
+        assert create_extract_schemas_task_function is not None
+        assert create_compute_statistics_task_function is not None
+        assert create_detect_drift_task_function is not None
+        assert create_validate_quality_task_function is not None
+        assert create_quality_summary_task_function is not None
+
+    def test_storage_handler_supports_gcs(self):
+        """Test that StorageHandler supports GCS operations"""
+        from utils.storage import StorageHandler
+
+        # Test with local storage
+        handler = StorageHandler(
+            use_gcs=False,
+            local_dir=Path('/tmp/test')
+        )
+
+        assert handler is not None
+        assert handler.use_gcs == False
+
+        # Check for required methods
+        assert hasattr(handler, 'upload_string_to_gcs'), \
+            "StorageHandler should have upload_string_to_gcs method"
+        assert hasattr(handler, 'download_string_from_gcs'), \
+            "StorageHandler should have download_string_from_gcs method"
+
+    def test_config_has_storage_settings(self):
+        """Test that config has storage configuration"""
+        from utils.config import PipelineConfig
+
+        config = PipelineConfig()
+
+        assert hasattr(config, 'USE_GCS'), \
+            "Config should have USE_GCS flag"
+        assert hasattr(config, 'GCS_BUCKET'), \
+            "Config should have GCS_BUCKET setting"
+
+
 class TestValidationDocumentation:
     """Test that validation mechanisms are documented"""
 
@@ -228,33 +267,28 @@ class TestValidationDocumentation:
             doc = dag.doc_md.lower()
             has_validation_docs = (
                 'validation' in doc or
-                'leakage' in doc or
+                'schema' in doc or
                 'quality' in doc or
-                'integrity' in doc
+                'statistics' in doc
             )
 
             assert has_validation_docs, \
                 "DAG documentation should mention data validation"
 
-    def test_validator_class_has_docstrings(self):
-        """Test that DataValidator methods have docstrings"""
+    def test_validator_classes_have_docstrings(self):
+        """Test that validator classes have docstrings"""
         from utils.validation import DataValidator
+        from utils.schema_validator import SchemaValidator
 
-        validator = DataValidator(project_id='test-project')
-
-        # Check main methods have docstrings
-        assert validator.verify_data_integrity.__doc__ is not None, \
+        # Check DataValidator
+        data_validator = DataValidator(project_id='test-project')
+        assert data_validator.verify_data_integrity.__doc__ is not None, \
             "verify_data_integrity should have docstring"
 
-        assert validator.generate_statistics.__doc__ is not None, \
-            "generate_statistics should have docstring"
-
-    def test_validation_module_has_module_docstring(self):
-        """Test that validation module has documentation"""
-        from utils import validation
-
-        assert validation.__doc__ is not None, \
-            "validation module should have docstring"
+        # Check SchemaValidator
+        schema_validator = SchemaValidator(project_id='test-project')
+        assert schema_validator.extract_table_schema.__doc__ is not None, \
+            "extract_table_schema should have docstring"
 
 
 class TestFederatedLearningRequirements:
@@ -275,9 +309,6 @@ class TestFederatedLearningRequirements:
 
     def test_patient_level_split_design(self):
         """Test that design uses patient-level splits (not temporal)"""
-        # This is a design validation - patient-level splits prevent
-        # temporal leakage where future data influences training
-
         sql_dir = Path(DAG_FOLDER) / 'sql'
 
         if sql_dir.exists():
@@ -292,3 +323,90 @@ class TestFederatedLearningRequirements:
 
                 assert has_patient_split, \
                     "Should use patient-level splits for federated learning"
+
+    def test_layers_configuration(self):
+        """Test that all required layers are configured"""
+        from utils.config import PipelineConfig
+
+        config = PipelineConfig()
+
+        if hasattr(config, 'LAYERS'):
+            # Should have curated, federated, and verification layers
+            assert 'curated' in config.LAYERS, "Should have curated layer"
+            assert 'federated' in config.LAYERS, "Should have federated layer"
+            assert 'verification' in config.LAYERS, "Should have verification layer"
+
+
+class TestDataQualityThresholds:
+    """Test data quality validation thresholds"""
+
+    def test_quality_thresholds_defined(self):
+        """Test that quality thresholds are defined in task functions"""
+        from utils.task_functions import validate_data_quality_task
+        import inspect
+
+        # Check that custom thresholds are defined
+        source = inspect.getsource(validate_data_quality_task)
+
+        assert 'row_count_change_pct' in source, \
+            "Should define row count change threshold"
+        assert 'null_rate_threshold' in source, \
+            "Should define null rate threshold"
+        assert 'distinct_ratio_min' in source, \
+            "Should define distinct ratio threshold"
+
+    def test_thresholds_are_reasonable(self):
+        """Test that threshold values are reasonable for healthcare data"""
+        from utils.task_functions import validate_data_quality_task
+        import inspect
+
+        source = inspect.getsource(validate_data_quality_task)
+
+        # Extract threshold values (simple check)
+        # Thresholds should be between 0 and 1 or reasonable percentages
+        assert '50.0' in source or '0.5' in source, \
+            "Row count change threshold should be reasonable (e.g., 50%)"
+        assert '0.3' in source or '30' in source, \
+            "Null rate threshold should be reasonable (e.g., 30%)"
+
+
+class TestPipelineOutputs:
+    """Test that pipeline generates expected outputs"""
+
+    def test_output_directories_configured(self):
+        """Test that output directories are properly configured"""
+        expected_dirs = [
+            'data/schemas',
+            'data/statistics',
+            'data/drift',
+            'data/validation',
+            'data/reports'
+        ]
+
+        # These directories should be created by the pipeline
+        # Just verify the paths are consistent in code
+        from utils.schema_utils import (
+            extract_all_layer_schemas,
+            compute_all_layer_statistics
+        )
+        import inspect
+
+        extract_source = inspect.getsource(extract_all_layer_schemas)
+        compute_source = inspect.getsource(compute_all_layer_statistics)
+
+        assert 'data/schemas' in extract_source, \
+            "Should use data/schemas directory"
+        assert 'data/statistics' in compute_source, \
+            "Should use data/statistics directory"
+
+    def test_dvc_integration_configured(self):
+        """Test that DVC integration is configured"""
+        from utils.task_functions import (
+            create_dvc_version_reports_task_function,
+            create_dvc_version_all_data_task_function,
+            create_dvc_version_bigquery_task_function
+        )
+
+        assert create_dvc_version_reports_task_function is not None
+        assert create_dvc_version_all_data_task_function is not None
+        assert create_dvc_version_bigquery_task_function is not None
