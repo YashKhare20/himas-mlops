@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      .header {
+        background-color: #dc3545;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+      .content {
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+      .info-box {
+        background-color: white;
+        padding: 15px;
+        margin: 10px 0;
+        border-left: 4px solid #dc3545;
+        border-radius: 5px;
+      }
+      .error-box {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+      }
+      .label {
+        font-weight: bold;
+        color: #495057;
+      }
+      .button {
+        background-color: #dc3545;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        margin: 10px 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>❌ HIMAS Task Failure</h1>
+      <p>Healthcare Intelligence Multi-Agent System</p>
+    </div>
+    <div class="content">
+      <div class="info-box">
+        <p><span class="label">DAG:</span> {{dag.dag_id}}</p>
+        <p><span class="label">Task:</span> {{ti.task_id}}</p>
+        <p><span class="label">Logical Date:</span> {{logical_date}}</p>
+        <p>
+          <span class="label">Try:</span> {{try_number}} out of {{max_tries +
+          1}}
+        </p>
+        <p><span class="label">Host:</span> {{ti.hostname}}</p>
+      </div>
+
+      <div class="error-box">
+        <h3>🔴 Error Details</h3>
+        <pre style="white-space: pre-wrap; word-wrap: break-word">
+{{exception_html}}</pre
+        >
+      </div>
+
+      <div style="text-align: center; margin: 20px 0">
+        <a href="{{ti.log_url}}" class="button">📋 View Logs</a>
+        <a href="{{ti.mark_success_url}}" class="button">✓ Mark Success</a>
+      </div>
+    </div>
+    <div
+      style="
+        background-color: #343a40;
+        color: white;
+        padding: 15px;
+        text-align: center;
+      "
+    >
+      <p style="margin: 5px 0">
+        <strong>HIMAS - Healthcare Intelligence Multi-Agent System</strong>
+      </p>
+      <p style="margin: 5px 0; font-size: 12px">
+        Automated Alert from Apache Airflow
+      </p>
+      <p style="margin: 5px 0; font-size: 11px; color: #adb5bd">
+        🔒 Federated Learning • 🏥 MIMIC-IV Dataset • ☁️ Google Cloud Platform
+      </p>
+    </div>
+  </body>
+</html>
