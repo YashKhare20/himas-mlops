@@ -1,22 +1,16 @@
 """
-HIMAS BigQuery Data Pipeline - Modularized Demo Edition with DVC
+HIMAS BigQuery Data Pipeline - Schema & Statistics Validation
+
+Automated schema extraction, statistics generation, and data quality validation.
 
 Features:
-- Modular configuration (utils/config.py)
-- Hybrid storage support (utils/storage.py)
-- SQL file utilities (utils/sql_utils.py)
-- Data validation (utils/validation.py)
-- Email callbacks (utils/email_callbacks.py)
-- DVC data versioning (utils/dvc_handler.py)
-- Fast import (<5 seconds)
-- Works locally or with GCS
+- Automated schema extraction from BigQuery
+- Field-level statistics computation
+- Schema drift detection with baselines
+- Data quality validation with thresholds
+- DVC data versioning
+- Email alerting
 """
-from utils.email_callbacks import send_success_email
-from utils.validation import DataValidator
-from utils.sql_utils import SQLFileLoader
-from utils.storage import StorageHandler
-from utils.config import PipelineConfig
-from utils.dvc_handler import DVCHandler
 from datetime import datetime
 from airflow.sdk import DAG, task_group
 from airflow.providers.standard.operators.python import PythonOperator
@@ -25,168 +19,63 @@ from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryInsertJobOperator,
 )
 
-
-# ============================================================================
-# INITIALIZE COMPONENTS
-# ============================================================================
-
-# Configuration
-config = PipelineConfig()
-
-# Storage handler
-storage = StorageHandler(
-    use_gcs=config.USE_GCS,
-    gcs_bucket=config.GCS_BUCKET,
-    local_dir=config.REPORTS_DIR,
-    project_id=config.PROJECT_ID
+from utils.config import PipelineConfig
+from utils.email_callbacks import send_success_email
+from utils.task_functions import (
+    create_extract_schemas_task_function,
+    create_compute_statistics_task_function,
+    create_detect_drift_task_function,
+    create_validate_quality_task_function,
+    create_quality_summary_task_function,
+    create_dvc_version_reports_task_function,
+    create_dvc_version_all_data_task_function,
+    create_dvc_version_bigquery_task_function
 )
 
-# SQL loader
-sql_loader = SQLFileLoader(sql_dir=config.SQL_DIR)
-
-# Data validator
-validator = DataValidator(
-    project_id=config.PROJECT_ID,
-    location=config.LOCATION
-)
-
-# DVC handler
-dvc_handler = DVCHandler(
-    repo_path="/opt/airflow",
-    use_gcs=config.USE_GCS,
-    gcs_bucket=config.GCS_BUCKET,
-    project_id=config.PROJECT_ID
-)
 
 # ============================================================================
-# TASK FUNCTIONS (Parameterized)
+# LAZY INITIALIZATION
 # ============================================================================
 
-
-def verify_data_integrity_task(**context):
-    """
-    Task function: Verify data integrity using modular validator.
-
-    Uses:
-        - validator (DataValidator)
-        - storage (StorageHandler)
-    """
-    return validator.verify_data_integrity(storage, **context)
-
-
-def generate_statistics_task(**context):
-    """
-    Task function: Generate statistics using modular validator.
-
-    Uses:
-        - validator (DataValidator)
-        - storage (StorageHandler)
-    """
-    return validator.generate_statistics(storage, **context)
-
-
-def version_reports_task(**context):
-    """
-    Task function: Version the reports directory with DVC.
-
-    Uses:
-        - dvc_handler (DVCHandler)
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-
-    # Get run ID
-    run_id = context['run_id']
-
-    logger.info(f"Versioning reports for run_id: {run_id}")
-
-    # Create version metadata
-    metadata = dvc_handler.create_version_metadata(
-        run_id=run_id,
-        context=context
+def get_schema_validator():
+    """Initialize SchemaValidator for schema extraction and validation."""
+    from utils.schema_validator import SchemaValidator
+    config = PipelineConfig()
+    return SchemaValidator(
+        project_id=config.PROJECT_ID,
+        location=config.LOCATION
     )
-    logger.info(f"Created version metadata: {metadata}")
-
-    # Version reports
-    logger.info("Versioning reports directory...")
-    success = dvc_handler.version_reports()
-
-    if success:
-        status = dvc_handler.get_data_status()
-        logger.info(f"DVC Status: {status}")
-        return {
-            "success": True,
-            "metadata": metadata,
-            "status": status
-        }
-    else:
-        raise Exception("Failed to version reports with DVC")
 
 
-def version_all_data_task(**context):
-    """
-    Task function: Version all data directories with DVC.
-
-    Uses:
-        - dvc_handler (DVCHandler)
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-
-    # Get run ID
-    run_id = context['run_id']
-
-    # Version all data
-    logger.info("Versioning all data directories...")
-    success = dvc_handler.version_all_data()
-
-    if success:
-        status = dvc_handler.get_data_status()
-        logger.info(f"DVC Status after versioning: {status}")
-
-        # Push XCom for downstream tasks
-        context['task_instance'].xcom_push(key='dvc_version', value=run_id)
-
-        return {
-            "success": True,
-            "run_id": run_id,
-            "status": status,
-            "remote_type": "gcs" if dvc_handler.use_gcs else "local"
-        }
-    else:
-        raise Exception("Failed to version data with DVC")
-
-
-def version_bigquery_layers_task(**context):
-    """
-    Task function: Export and version BigQuery layers.
-
-    Uses:
-        - dvc_handler (DVCHandler)
-        - config (PipelineConfig)
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-
-    run_id = context['run_id']
-
-    logger.info(
-        f"Exporting and versioning BigQuery layers for run_id: {run_id}")
-
-    # Export and version BigQuery tables
-    success = dvc_handler.version_bigquery_layers(
+def get_storage_handler():
+    """Initialize StorageHandler for local/GCS storage."""
+    from utils.storage import StorageHandler
+    config = PipelineConfig()
+    return StorageHandler(
+        use_gcs=config.USE_GCS,
+        gcs_bucket=config.GCS_BUCKET,
+        local_dir=config.DATA_DIR,
         project_id=config.PROJECT_ID
     )
 
-    if success:
-        logger.info("Successfully versioned BigQuery layers")
-        return {
-            "success": True,
-            "run_id": run_id,
-            "layers": ["curated", "federated", "verification"]
-        }
-    else:
-        raise Exception("Failed to version BigQuery layers")
+
+def get_dvc_handler():
+    """Initialize DVCHandler for data versioning."""
+    from utils.dvc_handler import DVCHandler
+    config = PipelineConfig()
+    return DVCHandler(
+        repo_path="/opt/airflow",
+        use_gcs=config.USE_GCS,
+        gcs_bucket=config.GCS_BUCKET,
+        project_id=config.PROJECT_ID
+    )
+
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+config = PipelineConfig()
 
 
 # ============================================================================
@@ -203,40 +92,32 @@ with DAG(
         'email_on_retry': False,
         'retries': 0,
     },
-    description='HIMAS BigQuery Pipeline with DVC Versioning',
+    description='HIMAS Data Pipeline',
     schedule=None,
     start_date=datetime(2025, 1, 1),
     catchup=False,
-    tags=['himas', 'bigquery', 'demo', 'modular', 'dvc'],
+    tags=['himas', 'bigquery', 'schema-validation', 'dvc', 'mlops'],
     on_success_callback=send_success_email,
     doc_md=f"""
-    # HIMAS Data Pipeline - Demo Edition with DVC
+    # HIMAS Data Pipeline - Schema & Statistics Validation
 
-    **Storage**: {storage.get_storage_info()}
-    **Project**: {config.PROJECT_ID}
+    **Project**: {config.PROJECT_ID}  
+    **Location**: {config.LOCATION}  
     **DVC Remote**: {'GCS' if config.USE_GCS else 'Local'}
 
-    This DAG processes MIMIC-IV demo data for federated learning with data versioning.
-
-    ## Features
-    - Modular architecture
-    - Hybrid storage (local/GCS)
-    - Native BigQuery operators
-    - Atomic SQL tasks
-    - Email alerts
-    - **DVC data versioning**
-
-    ## DVC Integration
-    - Automatic versioning of reports and datasets
-    - Support for local and GCS remotes
-    - Version metadata tracking
-    - Data integrity validation
-
-    ## Outputs
-    - Curated dimensional tables
-    - Federated hospital views
-    - Data quality reports
-    - **Versioned datasets (.dvc files)**
+    ## Pipeline Flow
+    
+    1. **create_datasets()** - Create BigQuery datasets
+    2. **curated_layer()** - Build dimensional model (6 tables)
+    3. **federated_layer()** - Create hospital partitions (3 hospitals)
+    4. **verification_layer()** - Quality check views (2 tables)
+    5. **schema_and_statistics()** - Schema validation
+       - Extract schemas from all tables
+       - Compute field-level statistics
+       - Detect schema drift vs baseline
+       - Validate data quality
+       - Generate summary report
+    6. **version_with_dvc()** - Version all outputs
     """
 ) as dag:
 
@@ -244,9 +125,9 @@ with DAG(
     # TASK GROUP 1: CREATE DATASETS
     # ========================================================================
 
-    @task_group(tooltip='Create BigQuery datasets for all layers')
+    @task_group(tooltip='Create BigQuery datasets')
     def create_datasets():
-        """Create BigQuery datasets for all pipeline layers."""
+        """Create BigQuery datasets for all layers."""
         for dataset_config in config.DATASETS:
             BigQueryCreateEmptyDatasetOperator(
                 task_id=f"create_{dataset_config['dataset_id']}",
@@ -262,27 +143,16 @@ with DAG(
     # TASK GROUP 2: CURATED LAYER
     # ========================================================================
 
-    @task_group(tooltip='Create dimensional model tables')
+    @task_group(tooltip='Create dimensional model')
     def curated_layer():
-        """
-        Create dimensional model tables.
-
-        Creates:
-        - patient_split_assignment
-        - dim_patient
-        - fact_hospital_admission
-        - fact_icu_stay
-        - fact_transfers
-        - clinical_features
-        """
-        curated_sql_files = sql_loader.get_layer_files('curated_layer')
+        """Create curated layer tables (sequential execution)."""
         curated_tasks = []
 
-        for sql_file in curated_sql_files:
-            file_stem = sql_file.stem
+        for table_name in config.CURATED_TABLES:
+            sql_file = config.SQL_DIR / 'curated_layer' / f'{table_name}.sql'
 
             task = BigQueryInsertJobOperator(
-                task_id=f"create_{file_stem}",
+                task_id=f"create_{table_name}",
                 configuration={
                     "query": {
                         "query": sql_file.read_text(),
@@ -295,7 +165,7 @@ with DAG(
 
             curated_tasks.append(task)
 
-        # Chain sequentially (order matters for dimensional model)
+        # Chain sequentially
         if len(curated_tasks) > 1:
             for i in range(len(curated_tasks) - 1):
                 curated_tasks[i] >> curated_tasks[i + 1]
@@ -304,23 +174,14 @@ with DAG(
     # TASK GROUP 3: FEDERATED LAYER
     # ========================================================================
 
-    @task_group(tooltip='Create hospital-specific federated views')
+    @task_group(tooltip='Create hospital partitions')
     def federated_layer():
-        """
-        Create federated hospital data.
-
-        Creates:
-        - hospital_a_data (40% of patients)
-        - hospital_b_data (35% of patients)
-        - hospital_c_data (25% of patients)
-        """
-        federated_sql_files = sql_loader.get_layer_files('federated_layer')
-
-        for sql_file in federated_sql_files:
-            file_stem = sql_file.stem
+        """Create federated hospital data (parallel execution)."""
+        for table_name in config.FEDERATED_TABLES:
+            sql_file = config.SQL_DIR / 'federated_layer' / f'{table_name}.sql'
 
             BigQueryInsertJobOperator(
-                task_id=f"create_{file_stem}",
+                task_id=f"create_{table_name}",
                 configuration={
                     "query": {
                         "query": sql_file.read_text(),
@@ -335,23 +196,15 @@ with DAG(
     # TASK GROUP 4: VERIFICATION LAYER
     # ========================================================================
 
-    @task_group(tooltip='Create data quality check views')
+    @task_group(tooltip='Create quality check views')
     def verification_layer():
-        """
-        Create verification views.
-
-        Creates:
-        - data_leakage_check
-        - dataset_statistics
-        """
-        verification_sql_files = sql_loader.get_layer_files(
-            'verification_layer')
-
-        for sql_file in verification_sql_files:
-            file_stem = sql_file.stem
+        """Create verification views (parallel execution)."""
+        for table_name in config.VERIFICATION_TABLES:
+            sql_file = config.SQL_DIR / \
+                'verification_layer' / f'{table_name}.sql'
 
             BigQueryInsertJobOperator(
-                task_id=f"create_{file_stem}",
+                task_id=f"create_{table_name}",
                 configuration={
                     "query": {
                         "query": sql_file.read_text(),
@@ -363,52 +216,110 @@ with DAG(
             )
 
     # ========================================================================
-    # TASK GROUP 5: QUALITY CHECKS & REPORTING
+    # TASK GROUP 5: SCHEMA & STATISTICS VALIDATION
     # ========================================================================
 
-    @task_group(tooltip='Verify data integrity and generate reports')
-    def quality_checks():
-        """Run data quality checks and generate reports."""
-        verify_integrity = PythonOperator(
-            task_id='verify_data_integrity',
-            python_callable=verify_data_integrity_task,
+    @task_group(tooltip='Schema and statistics validation')
+    def schema_and_statistics():
+        """
+        Validate schemas and statistics.
+
+        Tasks:
+        1. Extract schemas from BigQuery tables
+        2. Compute field-level statistics
+        3. Detect schema drift vs baseline
+        4. Validate data quality against thresholds
+        5. Generate comprehensive summary
+        """
+        extract_schemas = PythonOperator(
+            task_id='extract_all_schemas',
+            python_callable=create_extract_schemas_task_function(
+                schema_validator=None,
+                config=config,
+                storage_handler=None
+            ),
         )
 
-        generate_stats = PythonOperator(
-            task_id='generate_statistics',
-            python_callable=generate_statistics_task,
+        compute_stats = PythonOperator(
+            task_id='compute_all_statistics',
+            python_callable=create_compute_statistics_task_function(
+                schema_validator=None,
+                config=config,
+                storage_handler=None
+            ),
         )
 
-        verify_integrity >> generate_stats
+        detect_drift = PythonOperator(
+            task_id='detect_schema_drift',
+            python_callable=create_detect_drift_task_function(
+                schema_validator=None,
+                config=config,
+                storage_handler=None
+            ),
+        )
+
+        validate_quality = PythonOperator(
+            task_id='validate_data_quality',
+            python_callable=create_validate_quality_task_function(
+                schema_validator=None,
+                config=config,
+                storage_handler=None
+            ),
+        )
+
+        generate_summary = PythonOperator(
+            task_id='generate_quality_summary',
+            python_callable=create_quality_summary_task_function(
+                schema_validator=None,
+                config=config,
+                storage_handler=None
+            ),
+        )
+
+        # Dependencies: extract/compute → drift → validate → summary
+        [extract_schemas, compute_stats] >> detect_drift >> validate_quality >> generate_summary
 
     # ========================================================================
     # TASK GROUP 6: DVC VERSIONING
     # ========================================================================
 
-    @task_group(tooltip='Version datasets and reports with DVC')
+    @task_group(tooltip='Version data with DVC')
     def version_with_dvc():
-        """Version all generated data with DVC."""
-
+        """Version all outputs with DVC."""
         version_bigquery = PythonOperator(
             task_id='version_bigquery_layers',
-            python_callable=version_bigquery_layers_task,
+            python_callable=create_dvc_version_bigquery_task_function(
+                dvc_handler=None,
+                config=config
+            ),
         )
 
         version_reports = PythonOperator(
             task_id='version_reports',
-            python_callable=version_reports_task,
+            python_callable=create_dvc_version_reports_task_function(
+                dvc_handler=None
+            ),
         )
 
         version_all_data = PythonOperator(
             task_id='version_all_data',
-            python_callable=version_all_data_task,
+            python_callable=create_dvc_version_all_data_task_function(
+                dvc_handler=None
+            ),
         )
 
+        # Sequential versioning
         version_bigquery >> version_reports >> version_all_data
 
     # ========================================================================
     # PIPELINE DEPENDENCIES
     # ========================================================================
 
-    (create_datasets() >> curated_layer() >>
-     federated_layer() >> verification_layer() >> quality_checks() >> version_with_dvc())
+    (
+        create_datasets()
+        >> curated_layer()
+        >> federated_layer()
+        >> verification_layer()
+        >> schema_and_statistics()
+        >> version_with_dvc()
+    )

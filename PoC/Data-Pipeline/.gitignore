@@ -4,6 +4,7 @@
 /dags/data/processed
 /dags/data/raw
 /dags/data/models
+/dags/data/metadata
 
 # Python
 __pycache__/

@@ -110,6 +110,41 @@ class StorageHandler:
     def get_storage_info(self) -> str:
         """Get human-readable storage information."""
         if self.use_gcs:
-            return f"GCS: gs://{self.gcs_bucket}/reports/"
+            return f"GCS: gs://{self.gcs_bucket}/data/reports/"
         else:
             return f"Local: {self.local_dir}/"
+
+    def upload_string_to_gcs(self, content: str, blob_name: str) -> None:
+        """
+        Upload string content to GCS.
+
+        Args:
+            content: String content to upload
+            blob_name: Blob name/path in GCS (e.g., 'data/schemas/schema.json')
+        """
+        from google.cloud import storage
+
+        client = storage.Client(project=self.project_id)
+        bucket = client.bucket(self.gcs_bucket)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(content, content_type='application/json')
+
+        logging.info(f"Uploaded to GCS: gs://{self.gcs_bucket}/{blob_name}")
+
+    def download_string_from_gcs(self, blob_name: str) -> str:
+        """
+        Download string content from GCS.
+
+        Args:
+            blob_name: Blob name/path in GCS
+
+        Returns:
+            String content
+        """
+        from google.cloud import storage
+
+        client = storage.Client(project=self.project_id)
+        bucket = client.bucket(self.gcs_bucket)
+        blob = bucket.blob(blob_name)
+
+        return blob.download_as_text()
