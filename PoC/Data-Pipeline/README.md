@@ -8,6 +8,28 @@
 [![DVC](https://img.shields.io/badge/DVC-Versioned-945DD6)](https://dvc.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 ---
+
+## 📋 Table of Contents
+
+- [Overview](#🎯-overview)
+- [Architecture](#🏗️-architecture)
+- [Prerequisites](#📦-prerequisites)
+- [Environment Setup](#🚀-environment-setup)
+- [Code Structure](#📁-code-structure)
+- [Data Acquisition](#📊-data-acquisition)
+- [Data Preprocessing](#🔄-data-preprocessing)
+- [Pipeline Orchestration](#🔧-pipeline-orchestration)
+- [Data Versioning with DVC](#💾-data-versioning-with-dvc)
+- [Schema & Statistics Validation](#🔍-schema--statistics-validation)
+- [Tracking & Logging](#📝-tracking--logging)
+- [Anomaly Detection & Alerts](#🚨-anomaly-detection--alerts)
+- [Testing](#🧪-testing)
+- [Pipeline Optimization](#⚡-pipeline-optimization)
+- [Troubleshooting](#🔧-troubleshooting)
+- [Appendix](#📚-appendix-pair-guidebook-worksheets)
+- [Contributing](#🤝-contributing)
+
+---
 ## 🎯 Overview
 
 HIMAS Data Pipeline is a production-ready, scalable data pipeline built with Apache Airflow that processes MIMIC-IV healthcare data for federated learning scenarios. The pipeline implements automated schema validation, comprehensive statistics generation, and data versioning using DVC, all while maintaining HIPAA compliance through patient-level data splitting.
@@ -1933,6 +1955,15 @@ env | grep GOOGLE
 
 ---
 
+## 📚 Appendix: PAIR Guidebook Worksheets
+
+### Google PAIR (People + AI Research) Design Framework
+
+As part of the HIMAS project development, we followed Google's People + AI Research (PAIR) design framework to ensure our data pipeline meets user needs and handles errors gracefully.
+
+- **Completed Worksheets**: See `assets/` folder for full PDF documents
+
+
 ## 🤝 Contributing
 
 ### Development Setup
@@ -1987,30 +2018,6 @@ git push origin feature/your-feature-name
 6. Wait for CI/CD to pass
 7. Request review
 8. Merge after approval
-
----
-
-## 📚 Additional Resources
-
-### Documentation
-
-- **Apache Airflow**: https://airflow.apache.org/docs/apache-airflow/3.1.0/
-- **Google BigQuery**: https://cloud.google.com/bigquery/docs
-- **DVC**: https://dvc.org/doc
-- **MIMIC-IV**: https://mimic.mit.edu/docs/iv/
-
-### Tutorials
-
-- [Airflow Docker Guide](https://airflow.apache.org/docs/apache-airflow/stable/howto/docker compose/index.html)
-- [BigQuery Python Client](https://cloud.google.com/python/docs/reference/bigquery/latest)
-- [DVC Get Started](https://dvc.org/doc/start)
-- [Federated Learning Basics](https://federated.withgoogle.com/)
-
-### Related Projects
-
-- **Flower Framework**: Federated learning framework
-- **Google ADK**: Agent Development Kit for multi-agent systems
-- **MIMIC-IV Benchmark**: ICU mortality prediction benchmarks
 
 ---
 
