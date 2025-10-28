@@ -4,9 +4,7 @@ Task Functions for HIMAS BigQuery Pipeline
 Includes DVC versioning tasks and Schema & Statistics validation tasks.
 """
 import logging
-import json
-from typing import Dict, Any
-from pathlib import Path
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -234,170 +232,356 @@ def version_bigquery_layers_task(dvc_handler, config, **context) -> Dict[str, An
 
 
 # ============================================================================
-# WRAPPER FUNCTIONS FOR AIRFLOW TASKS
+# WRAPPER FUNCTIONS FOR AIRFLOW TASKS (WITH LAZY INITIALIZATION)
 # ============================================================================
 
 
-def create_extract_schemas_task_function(schema_validator, config, storage_handler):
+def create_extract_schemas_task_function(
+    schema_validator: Optional['SchemaValidator'],
+    config: 'PipelineConfig',
+    storage_handler: Optional['StorageHandler']
+):
     """
     Factory function: Create schema extraction task function.
 
+    Supports lazy initialization - if schema_validator or storage_handler are None,
+    they will be initialized at task runtime (not DAG parse time).
+    This allows DAG to be parsed in CI/CD without GCP credentials.
+
     Args:
-        schema_validator: SchemaValidator instance
+        schema_validator: SchemaValidator instance or None for lazy init
         config: PipelineConfig instance
-        storage_handler: StorageHandler instance
+        storage_handler: StorageHandler instance or None for lazy init
 
     Returns:
         Callable task function for Airflow
     """
     def task_function(**context):
+        # Lazy initialization at runtime (not DAG parse time)
+        if schema_validator is None:
+            from utils.schema_validator import SchemaValidator
+            validator = SchemaValidator(
+                project_id=config.PROJECT_ID,
+                location=config.LOCATION
+            )
+        else:
+            validator = schema_validator
+
+        if storage_handler is None:
+            from utils.storage import StorageHandler
+            handler = StorageHandler(
+                use_gcs=config.USE_GCS,
+                gcs_bucket=config.GCS_BUCKET,
+                local_dir=config.DATA_DIR,
+                project_id=config.PROJECT_ID
+            )
+        else:
+            handler = storage_handler
+
         return extract_all_schemas_task(
-            schema_validator=schema_validator,
+            schema_validator=validator,
             config=config,
-            storage_handler=storage_handler,
+            storage_handler=handler,
             **context
         )
     return task_function
 
 
-def create_compute_statistics_task_function(schema_validator, config, storage_handler):
+def create_compute_statistics_task_function(
+    schema_validator: Optional['SchemaValidator'],
+    config: 'PipelineConfig',
+    storage_handler: Optional['StorageHandler']
+):
     """
     Factory function: Create statistics computation task function.
 
+    Supports lazy initialization for CI/CD compatibility.
+
     Args:
-        schema_validator: SchemaValidator instance
+        schema_validator: SchemaValidator instance or None for lazy init
         config: PipelineConfig instance
-        storage_handler: StorageHandler instance
+        storage_handler: StorageHandler instance or None for lazy init
 
     Returns:
         Callable task function for Airflow
     """
     def task_function(**context):
+        # Lazy initialization at runtime
+        if schema_validator is None:
+            from utils.schema_validator import SchemaValidator
+            validator = SchemaValidator(
+                project_id=config.PROJECT_ID,
+                location=config.LOCATION
+            )
+        else:
+            validator = schema_validator
+
+        if storage_handler is None:
+            from utils.storage import StorageHandler
+            handler = StorageHandler(
+                use_gcs=config.USE_GCS,
+                gcs_bucket=config.GCS_BUCKET,
+                local_dir=config.DATA_DIR,
+                project_id=config.PROJECT_ID
+            )
+        else:
+            handler = storage_handler
+
         return compute_all_statistics_task(
-            schema_validator=schema_validator,
+            schema_validator=validator,
             config=config,
-            storage_handler=storage_handler,
+            storage_handler=handler,
             **context
         )
     return task_function
 
 
-def create_detect_drift_task_function(schema_validator, config, storage_handler):
+def create_detect_drift_task_function(
+    schema_validator: Optional['SchemaValidator'],
+    config: 'PipelineConfig',
+    storage_handler: Optional['StorageHandler']
+):
     """
     Factory function: Create drift detection task function.
 
+    Supports lazy initialization for CI/CD compatibility.
+
     Args:
-        schema_validator: SchemaValidator instance
+        schema_validator: SchemaValidator instance or None for lazy init
         config: PipelineConfig instance
-        storage_handler: StorageHandler instance
+        storage_handler: StorageHandler instance or None for lazy init
 
     Returns:
         Callable task function for Airflow
     """
     def task_function(**context):
+        # Lazy initialization at runtime
+        if schema_validator is None:
+            from utils.schema_validator import SchemaValidator
+            validator = SchemaValidator(
+                project_id=config.PROJECT_ID,
+                location=config.LOCATION
+            )
+        else:
+            validator = schema_validator
+
+        if storage_handler is None:
+            from utils.storage import StorageHandler
+            handler = StorageHandler(
+                use_gcs=config.USE_GCS,
+                gcs_bucket=config.GCS_BUCKET,
+                local_dir=config.DATA_DIR,
+                project_id=config.PROJECT_ID
+            )
+        else:
+            handler = storage_handler
+
         return detect_schema_drift_task(
-            schema_validator=schema_validator,
+            schema_validator=validator,
             config=config,
-            storage_handler=storage_handler,
+            storage_handler=handler,
             **context
         )
     return task_function
 
 
-def create_validate_quality_task_function(schema_validator, config, storage_handler):
+def create_validate_quality_task_function(
+    schema_validator: Optional['SchemaValidator'],
+    config: 'PipelineConfig',
+    storage_handler: Optional['StorageHandler']
+):
     """
     Factory function: Create quality validation task function.
 
+    Supports lazy initialization for CI/CD compatibility.
+
     Args:
-        schema_validator: SchemaValidator instance
+        schema_validator: SchemaValidator instance or None for lazy init
         config: PipelineConfig instance
-        storage_handler: StorageHandler instance
+        storage_handler: StorageHandler instance or None for lazy init
 
     Returns:
         Callable task function for Airflow
     """
     def task_function(**context):
+        # Lazy initialization at runtime
+        if schema_validator is None:
+            from utils.schema_validator import SchemaValidator
+            validator = SchemaValidator(
+                project_id=config.PROJECT_ID,
+                location=config.LOCATION
+            )
+        else:
+            validator = schema_validator
+
+        if storage_handler is None:
+            from utils.storage import StorageHandler
+            handler = StorageHandler(
+                use_gcs=config.USE_GCS,
+                gcs_bucket=config.GCS_BUCKET,
+                local_dir=config.DATA_DIR,
+                project_id=config.PROJECT_ID
+            )
+        else:
+            handler = storage_handler
+
         return validate_data_quality_task(
-            schema_validator=schema_validator,
+            schema_validator=validator,
             config=config,
-            storage_handler=storage_handler,
+            storage_handler=handler,
             **context
         )
     return task_function
 
 
-def create_quality_summary_task_function(schema_validator, config, storage_handler):
+def create_quality_summary_task_function(
+    schema_validator: Optional['SchemaValidator'],
+    config: 'PipelineConfig',
+    storage_handler: Optional['StorageHandler']
+):
     """
     Factory function: Create quality summary task function.
 
+    Supports lazy initialization for CI/CD compatibility.
+
     Args:
-        schema_validator: SchemaValidator instance
+        schema_validator: SchemaValidator instance or None for lazy init
         config: PipelineConfig instance
-        storage_handler: StorageHandler instance
+        storage_handler: StorageHandler instance or None for lazy init
 
     Returns:
         Callable task function for Airflow
     """
     def task_function(**context):
+        # Lazy initialization at runtime
+        if schema_validator is None:
+            from utils.schema_validator import SchemaValidator
+            validator = SchemaValidator(
+                project_id=config.PROJECT_ID,
+                location=config.LOCATION
+            )
+        else:
+            validator = schema_validator
+
+        if storage_handler is None:
+            from utils.storage import StorageHandler
+            handler = StorageHandler(
+                use_gcs=config.USE_GCS,
+                gcs_bucket=config.GCS_BUCKET,
+                local_dir=config.DATA_DIR,
+                project_id=config.PROJECT_ID
+            )
+        else:
+            handler = storage_handler
+
         return generate_quality_summary_task(
-            schema_validator=schema_validator,
+            schema_validator=validator,
             config=config,
-            storage_handler=storage_handler,
+            storage_handler=handler,
             **context
         )
     return task_function
 
 
-def create_dvc_version_reports_task_function(dvc_handler):
+def create_dvc_version_reports_task_function(dvc_handler: Optional['DVCHandler']):
     """
     Factory function: Create a DVC version reports task function.
 
+    Supports lazy initialization for CI/CD compatibility.
+
     Args:
-        dvc_handler: DVCHandler instance
+        dvc_handler: DVCHandler instance or None for lazy init
 
     Returns:
         Callable task function for Airflow
     """
     def task_function(**context):
+        # Lazy initialization at runtime
+        if dvc_handler is None:
+            from utils.dvc_handler import DVCHandler
+            from utils.config import PipelineConfig
+            config = PipelineConfig()
+            handler = DVCHandler(
+                repo_path="/opt/airflow",
+                use_gcs=config.USE_GCS,
+                gcs_bucket=config.GCS_BUCKET,
+                project_id=config.PROJECT_ID
+            )
+        else:
+            handler = dvc_handler
+
         return version_reports_task(
-            dvc_handler=dvc_handler,
+            dvc_handler=handler,
             **context
         )
     return task_function
 
 
-def create_dvc_version_all_data_task_function(dvc_handler):
+def create_dvc_version_all_data_task_function(dvc_handler: Optional['DVCHandler']):
     """
     Factory function: Create a DVC version all data task function.
 
+    Supports lazy initialization for CI/CD compatibility.
+
     Args:
-        dvc_handler: DVCHandler instance
+        dvc_handler: DVCHandler instance or None for lazy init
 
     Returns:
         Callable task function for Airflow
     """
     def task_function(**context):
+        # Lazy initialization at runtime
+        if dvc_handler is None:
+            from utils.dvc_handler import DVCHandler
+            from utils.config import PipelineConfig
+            config = PipelineConfig()
+            handler = DVCHandler(
+                repo_path="/opt/airflow",
+                use_gcs=config.USE_GCS,
+                gcs_bucket=config.GCS_BUCKET,
+                project_id=config.PROJECT_ID
+            )
+        else:
+            handler = dvc_handler
+
         return version_all_data_task(
-            dvc_handler=dvc_handler,
+            dvc_handler=handler,
             **context
         )
     return task_function
 
 
-def create_dvc_version_bigquery_task_function(dvc_handler, config):
+def create_dvc_version_bigquery_task_function(
+    dvc_handler: Optional['DVCHandler'],
+    config: 'PipelineConfig'
+):
     """
     Factory function: Create a DVC version BigQuery task function.
 
+    Supports lazy initialization for CI/CD compatibility.
+
     Args:
-        dvc_handler: DVCHandler instance
+        dvc_handler: DVCHandler instance or None for lazy init
         config: PipelineConfig instance
 
     Returns:
         Callable task function for Airflow
     """
     def task_function(**context):
+        # Lazy initialization at runtime
+        if dvc_handler is None:
+            from utils.dvc_handler import DVCHandler
+            handler = DVCHandler(
+                repo_path="/opt/airflow",
+                use_gcs=config.USE_GCS,
+                gcs_bucket=config.GCS_BUCKET,
+                project_id=config.PROJECT_ID
+            )
+        else:
+            handler = dvc_handler
+
         return version_bigquery_layers_task(
-            dvc_handler=dvc_handler,
+            dvc_handler=handler,
             config=config,
             **context
         )
