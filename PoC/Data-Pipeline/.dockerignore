@@ -1,0 +1,94 @@
+# ============================================
+# .dockerignore for Self-Contained HIMAS Image
+# Only exclude what should NOT be in the image
+# ============================================
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker files (don't copy these into image)
+Dockerfile*
+docker-compose*.yml
+docker-compose*.yaml
+.dockerignore
+
+# Documentation (optional - exclude if you want smaller image)
+*.md
+!README.md
+docs/
+
+# Test files (optional - exclude if you want smaller image)
+tests/
+test_*.py
+*_test.py
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+
+# Runtime data (will be mounted as volumes)
+logs/*
+!logs/.gitkeep
+data/raw/*
+data/processed/*
+data/models/*
+data/reports/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/models/.gitkeep
+!data/reports/.gitkeep
+
+# Great Expectations runtime data (will be generated)
+great_expectations/uncommitted/data_docs/*
+great_expectations/uncommitted/validations/*
+great_expectations/.ge_store_backend_id
+
+# Environment files with secrets (use environment variables instead)
+.env
+.env.*
+*.env
+
+# Jupyter notebooks (optional)
+*.ipynb
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
+Thumbs.db
+
+# Airflow generated files (will be created at runtime)
+airflow.db
+airflow-webserver.pid
+webserver_config.py

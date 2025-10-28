@@ -450,12 +450,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Google Cloud**: For infrastructure and ADK platform
 - **Course Instructor**: MLOps Fall 2025
 
-## 📧 Contact
-
-- YK - [email]
-- MB - [email]
-- Project Link: https://github.com/[username]/himas-mlops
-
 ## 🔗 Resources
 
 - [Flower Documentation](https://flower.ai/docs/)
