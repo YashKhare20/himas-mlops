@@ -4,7 +4,13 @@ Task Functions for HIMAS BigQuery Pipeline
 Includes DVC versioning tasks and Schema & Statistics validation tasks.
 """
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from utils.schema_validator import SchemaValidator
+    from utils.storage import StorageHandler
+    from utils.dvc_handler import DVCHandler
+    from utils.config import PipelineConfig
 
 logger = logging.getLogger(__name__)
 
