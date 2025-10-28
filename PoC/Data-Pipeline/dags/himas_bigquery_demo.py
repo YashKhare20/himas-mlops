@@ -92,7 +92,7 @@ with DAG(
         'email_on_retry': False,
         'retries': 0,
     },
-    description='HIMAS Pipeline with Schema & Statistics Validation',
+    description='HIMAS Data Pipeline',
     schedule=None,
     start_date=datetime(2025, 1, 1),
     catchup=False,
@@ -118,24 +118,6 @@ with DAG(
        - Validate data quality
        - Generate summary report
     6. **version_with_dvc()** - Version all outputs
-    
-    ## Outputs
-    
-    All outputs stored in `/data/` directory (local or GCS based on USE_GCS flag):
-    
-    - `/data/schemas/` - Table schemas (JSON)
-    - `/data/statistics/` - Field statistics (JSON)
-    - `/data/drift/` - Drift reports (JSON)
-    - `/data/validation/` - Quality validation (JSON)
-    - `/data/reports/` - Summary reports (JSON)
-    
-    ## Validation Thresholds
-    
-    - Max row count change: 50%
-    - Max null rate per field: 30%
-    - Min distinct ratio: 1%
-    
-    See README.md for complete documentation.
     """
 ) as dag:
 

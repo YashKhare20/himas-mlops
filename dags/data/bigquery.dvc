@@ -1,6 +1,0 @@
-outs:
-- md5: fbb0629a80e4495cc4122ac0951cc4b3.dir
-  size: 251696
-  nfiles: 11
-  hash: md5
-  path: bigquery
