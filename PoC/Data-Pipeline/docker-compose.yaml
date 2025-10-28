@@ -87,13 +87,13 @@ x-airflow-common:
     AIRFLOW__SMTP__SMTP_SSL: 'False'
     AIRFLOW__SMTP__SMTP_PORT: 587
     AIRFLOW__SMTP__SMTP_USER: yashkharess20@gmail.com
-    AIRFLOW__SMTP__SMTP_PASSWORD: wtyzwzokedodobrc
+    AIRFLOW__SMTP__SMTP_PASSWORD: <app-pwd>
     AIRFLOW__SMTP__SMTP_MAIL_FROM: HIMAS Data Pipeline <yashkharess20@gmail.com>
     AIRFLOW__EMAIL__EMAIL_BACKEND: airflow.utils.email.send_email_smtp
     AIRFLOW__EMAIL__EMAIL_CONN_ID: smtp_default
     AIRFLOW__EMAIL__SUBJECT_TEMPLATE: /opt/airflow/dags/templates/email_failure_subject.txt
     AIRFLOW__EMAIL__HTML_CONTENT_TEMPLATE: /opt/airflow/dags/templates/failure_email_template.html
-    AIRFLOW_CONN_SMTP_DEFAULT: 'email://yashkharess20%40gmail.com:wtyzwzokedodobrc@smtp.gmail.com:587'
+    AIRFLOW_CONN_SMTP_DEFAULT: 'email://yashkharess20%40gmail.com:<app-pwd>@smtp.gmail.com:587'
     ALERT_EMAILS: yashkharess20@gmail.com, mohanbhosale6@gmail.com, raunaksinghkhalsa@gmail.com, manjushamg26@gmail.com, margishah2003@gmail.com
     USE_GCS: 'True'
     GCS_REPORTS_BUCKET: 'himas-airflow-data'
