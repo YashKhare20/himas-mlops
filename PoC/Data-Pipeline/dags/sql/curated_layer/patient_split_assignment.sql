@@ -20,7 +20,7 @@ CREATE OR REPLACE TABLE `erudite-carving-472018-r5.curated_demo.patient_split_as
         ),
         100
       ) AS split_hash
-    FROM `physionet-data.mimic_demo_core.patients`
+    FROM `erudite-carving-472018-r5.raw_demo.patients`
   )
 SELECT subject_id,
   anchor_age,

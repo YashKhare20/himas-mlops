@@ -17,14 +17,14 @@ SELECT p.subject_id,
   a.marital_status,
   a.language,
   a.insurance
-FROM `physionet-data.mimic_demo_core.patients` p
+FROM `erudite-carving-472018-r5.raw_demo.patients` p
   LEFT JOIN (
     SELECT subject_id,
       ethnicity,
       marital_status,
       language,
       insurance
-    FROM `physionet-data.mimic_demo_core.admissions` QUALIFY ROW_NUMBER() OVER (
+    FROM `erudite-carving-472018-r5.raw_demo.admissions` QUALIFY ROW_NUMBER() OVER (
         PARTITION BY subject_id
         ORDER BY admittime
       ) = 1
