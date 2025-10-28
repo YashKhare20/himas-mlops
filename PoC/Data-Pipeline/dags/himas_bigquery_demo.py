@@ -83,7 +83,7 @@ config = PipelineConfig()
 # ============================================================================
 
 with DAG(
-    dag_id='himas_bigquery_schema_validation',
+    dag_id='himas_bigquery_demo',
     default_args={
         'owner': 'himas',
         'depends_on_past': False,
