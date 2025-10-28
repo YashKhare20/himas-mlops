@@ -34,4 +34,4 @@ SELECT transfer_id,
     OR careunit IS NULL THEN 'Unknown' -- Regular ward
     ELSE 'Ward'
   END AS care_type
-FROM `physionet-data.mimic_demo_core.transfers`;
+FROM `erudite-carving-472018-r5.raw_demo.transfers`;

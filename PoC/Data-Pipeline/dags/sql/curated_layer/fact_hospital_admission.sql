@@ -25,5 +25,5 @@ SELECT adm.hadm_id,
     YEAR
     FROM adm.admittime
   ) - p.anchor_year AS age_at_admission
-FROM `physionet-data.mimic_demo_core.admissions` adm
-  INNER JOIN `physionet-data.mimic_demo_core.patients` p ON adm.subject_id = p.subject_id;
+FROM `erudite-carving-472018-r5.raw_demo.admissions` adm
+  INNER JOIN `erudite-carving-472018-r5.raw_demo.patients` p ON adm.subject_id = p.subject_id;

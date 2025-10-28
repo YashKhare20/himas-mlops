@@ -29,7 +29,7 @@ CREATE OR REPLACE TABLE `erudite-carving-472018-r5.curated_demo.fact_icu_stay` A
         hadm_id
         ORDER BY intime
       ) AS rn
-    FROM `physionet-data.mimic_demo_core.transfers`
+    FROM `erudite-carving-472018-r5.raw_demo.transfers`
     WHERE careunit IS NOT NULL
   ),
   icu_only AS (
