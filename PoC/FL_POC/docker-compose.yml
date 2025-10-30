@@ -1,0 +1,109 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.12.1
+    working_dir: /app
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri file:/mlflow
+        --artifacts-destination file:/artifacts
+    ports:
+      - "5000:5000"
+    environment:
+      - GIT_PYTHON_REFRESH=quiet
+    volumes:
+      - ./mlruns:/mlflow
+      - ./artifacts:/artifacts
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  flower-server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile.server
+    container_name: flower-server
+    environment:
+      - DATA_DIR=/app/data
+      - ART_DIR=/app/artifacts
+      - NUM_ROUNDS=3
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - GIT_PYTHON_REFRESH=quiet
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    depends_on:
+      mlflow:
+        condition: service_started   # MLflow is already starting fine; keep it simple
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket,sys; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',8080)); s.close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  client1:
+    build:
+      context: .
+      dockerfile: clients/Dockerfile.client
+    container_name: client1
+    environment:
+      - DATA_DIR=/app/data
+      - HOSPITAL_ID=1
+      - SERVER_ADDRESS=flower-server:8080
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - GIT_PYTHON_REFRESH=quiet
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      flower-server:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    restart: on-failure
+
+  client2:
+    build:
+      context: .
+      dockerfile: clients/Dockerfile.client
+    container_name: client2
+    environment:
+      - DATA_DIR=/app/data
+      - HOSPITAL_ID=2
+      - SERVER_ADDRESS=flower-server:8080
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - GIT_PYTHON_REFRESH=quiet
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      flower-server:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    restart: on-failure
+
+  client3:
+    build:
+      context: .
+      dockerfile: clients/Dockerfile.client
+    container_name: client3
+    environment:
+      - DATA_DIR=/app/data
+      - HOSPITAL_ID=3
+      - SERVER_ADDRESS=flower-server:8080
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - GIT_PYTHON_REFRESH=quiet
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      flower-server:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    restart: on-failure
