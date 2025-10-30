@@ -1,9 +1,0 @@
-{
-  "data": {
-    "mimic_base": "C:\\College\\MLOPS\\Data_Pipleine_POC\\mimic-iv-clinical-database-demo-2.2\\mimic-iv-clinical-database-demo-2.2",
-    "out_dir": ""
-  },
-  "build": {
-    "los_threshold_hours": 48.0
-  }
-}
