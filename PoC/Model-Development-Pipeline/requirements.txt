@@ -8,3 +8,4 @@ matplotlib
 pandas-gbq
 google-cloud-bigquery
 protobuf<5,>=4.21.6
+mlflow>=2.14.0
