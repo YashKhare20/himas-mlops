@@ -20,7 +20,7 @@ SPLIT_COL = "data_split"
 VALID_SPLITS = {"train", "validation", "test"}
 TARGET_COL = "icu_mortality_label"
 
-ENFORCE_MIN_PER_CLASS = False
+ENFORCE_MIN_PER_CLASS = True
 MIN_PER_CLASS = 1
 
 FED_DATA_ROOT = DATA_OUT_ROOT / "federated_demo"
@@ -65,12 +65,20 @@ TABNET_CFG = dict(
     n_steps=3,
     gamma=1.5,
     lr=1e-3,
-    max_epochs=3,
+    lambda_sparse=1e-3,
+    local_epochs=1,                # Added to avoid KeyError during training
     patience=2,
     batch_size=256,
     virtual_batch_size=128,
+    warmup_epochs=1,               # Used during initial TabNet creation
+    warmup_batch_size=128,
+    warmup_virtual_batch_size=64,
 )
 
 DEVICE = "cpu"
 
 HOSPITALS = {"hospital_a": "a", "hospital_b": "b", "hospital_c": "c"}
+
+MLFLOW_TRACKING_URI = "file:PoC/Model-Development-Pipeline/artifacts/mlruns"
+MLFLOW_EXPERIMENT_PREFIX = "Federated_Experiment_"
+LOG_MODE = "all"  # 'none', 'summary', or 'all'

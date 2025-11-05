@@ -1,9 +1,23 @@
+# train_federated_flower.py
 """
-True cross-silo federated learning with Flower.
+True cross-silo federated learning with Flower, with MLflow experiment tracking.
+
 Models: Logistic Regression (SGD), MLP (PyTorch), TabNet (optional).
-Aggregation: FedAvg, optionally FedProx via mu > 0.
-Per-model FedAvg runs sequentially. After all models, an ensemble evaluation averages per-model probabilities.
-Final client metrics and macro/micro summaries are saved to CSV/JSON.
+Aggregation: FedAvg; FedProx is available via prox_mu > 0.
+
+Training flow:
+1) Train each selected model type for a fixed number of FedAvg rounds.
+2) After all are trained, run a client-side ensemble evaluation (average of per-model probabilities).
+3) Save per-model and ensemble client metrics to CSV and macro/micro summaries to JSON.
+4) Log metrics and artifacts to MLflow (one experiment per model type + ensemble).
+
+CLI:
+  Server:
+    python train_federated_flower.py --role server --address 127.0.0.1:8080
+  Clients:
+    python train_federated_flower.py --role client --address 127.0.0.1:8080 --hospital hospital_a
+    python train_federated_flower.py --role client --address 127.0.0.1:8080 --hospital hospital_b
+    python train_federated_flower.py --role client --address 127.0.0.1:8080 --hospital hospital_c
 """
 
 import argparse
@@ -12,26 +26,33 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
+import torch
+import torch.nn as nn    
+import torch.optim as optim
+
 import numpy as np
 import pandas as pd
 
 import flwr as fl
 from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays, FitIns, EvaluateIns, Parameters
 
+import mlflow
+import mlflow.sklearn
+import mlflow.pytorch
+
 from config import (
     FED_DATA_ROOT as DATA_ROOT,
     MODEL_DIR, REPORT_DIR, CLIENT_CACHE_DIR,
     HOSPITALS, SPLIT_COL, VALID_SPLITS,
     TARGET_COL as CFG_TARGET_COL, SEED as RANDOM_STATE,
-    MODELS, ROUNDS_PER_MODEL, FED_PROX_MU,
     EXPECTED_CLIENTS, EVAL_THRESHOLD,
     LOGREG_CFG, MLP_CFG, TABNET_CFG,
     SAVE_GLOBAL_WEIGHTS, GLOBAL_WEIGHTS_DIR,
+    MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_PREFIX, LOG_MODE,
 )
 from utils import ensure_dir, select_X_y, DEFAULT_TARGET
 
 TARGET_COL = CFG_TARGET_COL or DEFAULT_TARGET
-
 
 try:
     import torch
@@ -55,13 +76,14 @@ from sklearn.metrics import (
     confusion_matrix, brier_score_loss, log_loss, cohen_kappa_score
 )
 
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 def to_float64(X):
     """
     Convert array or sparse matrix to float64.
 
     Args:
-        X: Array-like or sparse matrix.
+        X: Array-like or scipy.sparse matrix.
 
     Returns:
         Float64 numpy array or sparse matrix.
@@ -80,7 +102,7 @@ def to_float32(X):
     Convert array or sparse matrix to float32.
 
     Args:
-        X: Array-like or sparse matrix.
+        X: Array-like or scipy.sparse matrix.
 
     Returns:
         Float32 numpy array or sparse matrix.
@@ -96,13 +118,13 @@ def to_float32(X):
 
 def to_int64(y):
     """
-    Convert vector to int64.
+    Convert labels vector to int64.
 
     Args:
         y: Array-like labels.
 
     Returns:
-        Numpy array of int64.
+        Numpy array of dtype int64.
     """
     return np.asarray(y, dtype=np.int64)
 
@@ -112,12 +134,12 @@ def compute_metrics(y_true: np.ndarray, p: np.ndarray, thr: float = 0.5) -> Dict
     Compute standard binary classification metrics from probabilities.
 
     Args:
-        y_true: Ground truth labels as int64.
-        p: Predicted probabilities for class 1.
-        thr: Decision threshold for class assignment.
+        y_true: Ground-truth labels as int64 numpy array.
+        p: Predicted probabilities for class 1 as float array.
+        thr: Decision threshold to compute class predictions.
 
     Returns:
-        Dict of metrics and counts.
+        Dictionary of metrics, including confusion counts and sample size.
     """
     yhat = (p >= thr).astype(int)
     has_two = np.unique(y_true).size == 2
@@ -145,13 +167,13 @@ def compute_metrics(y_true: np.ndarray, p: np.ndarray, thr: float = 0.5) -> Dict
 
 def macro_micro(df: pd.DataFrame) -> Tuple[Dict[str, float], Dict[str, float]]:
     """
-    Compute macro and sample-weighted micro averages of key metrics.
+    Compute macro and sample-weighted micro averages of key metrics across clients.
 
     Args:
-        df: DataFrame with one row per client containing metrics.
+        df: DataFrame with one row per client and metric columns.
 
     Returns:
-        Tuple of (macro dict, micro dict).
+        Tuple of (macro_metrics_dict, micro_metrics_dict).
     """
     metric_cols = [
         "pr_auc", "roc_auc", "f1", "balanced_accuracy", "precision",
@@ -177,10 +199,10 @@ def load_hospital(letter: str) -> pd.DataFrame:
     Load a hospital CSV and validate the split column values.
 
     Args:
-        letter: Hospital letter suffix, such as 'a'.
+        letter: Hospital letter suffix ('a', 'b', or 'c').
 
     Returns:
-        DataFrame with normalized split labels.
+        DataFrame with normalized split labels and original schema.
     """
     path = Path(DATA_ROOT) / f"hospital_{letter}_data.csv"
     if not path.exists():
@@ -201,7 +223,7 @@ def load_hospital(letter: str) -> pd.DataFrame:
 @dataclass
 class LogRegState:
     """
-    Container for logistic regression state.
+    Container for logistic regression state for clarity if extended later.
     """
     clf: SGDClassifier
     features: List[str]
@@ -212,7 +234,7 @@ def logreg_init(n_features: int) -> SGDClassifier:
     Initialize an SGDClassifier configured for logistic regression.
 
     Args:
-        n_features: Number of input features.
+        n_features: Number of input features (unused by SGDClassifier init, kept for API symmetry).
 
     Returns:
         Configured SGDClassifier instance.
@@ -228,23 +250,23 @@ def logreg_init(n_features: int) -> SGDClassifier:
 
 def logreg_get_params(clf: SGDClassifier) -> List[np.ndarray]:
     """
-    Extract model parameters for federated aggregation.
+    Extract SGDClassifier parameters for federated aggregation.
 
     Args:
         clf: Trained or partially trained SGDClassifier.
 
     Returns:
-        List of ndarrays [coef, intercept] as float32.
+        List [coef, intercept] as float32 arrays.
     """
     return [clf.coef_.astype(np.float32), clf.intercept_.astype(np.float32)]
 
 
 def logreg_set_params(clf: SGDClassifier, params: List[np.ndarray]) -> None:
     """
-    Set model parameters from federated aggregation.
+    Load SGDClassifier parameters from arrays.
 
     Args:
-        clf: SGDClassifier instance.
+        clf: SGDClassifier instance to modify.
         params: List [coef, intercept] arrays.
 
     Returns:
@@ -260,7 +282,7 @@ def logreg_set_params(clf: SGDClassifier, params: List[np.ndarray]) -> None:
 
 class MLP(nn.Module):
     """
-    Two-hidden-layer MLP producing a binary logit.
+    Two-hidden-layer MLP producing a binary logit for classification.
     """
 
     def __init__(self, d_in: int, d_hidden: Optional[int] = None):
@@ -269,7 +291,7 @@ class MLP(nn.Module):
 
         Args:
             d_in: Number of input features.
-            d_hidden: Hidden dimension; defaults to config.
+            d_hidden: Hidden width (defaults to MLP_CFG['hidden_dim']).
         """
         super().__init__()
         d_hidden = d_hidden or MLP_CFG["hidden_dim"]
@@ -286,10 +308,10 @@ class MLP(nn.Module):
         Forward pass returning logits.
 
         Args:
-            x: Input tensor of shape [N, d_in].
+            x: Tensor [N, d_in].
 
         Returns:
-            1D tensor of logits.
+            Tensor [N] logits.
         """
         return self.net(x).squeeze(1)
 
@@ -299,7 +321,7 @@ def mlp_get_params(model: nn.Module) -> List[np.ndarray]:
     Extract MLP parameters as numpy arrays.
 
     Args:
-        model: PyTorch module.
+        model: PyTorch MLP model.
 
     Returns:
         List of ndarrays for each parameter tensor.
@@ -312,8 +334,8 @@ def mlp_set_params(model: nn.Module, nds: List[np.ndarray]) -> None:
     Load MLP parameters from numpy arrays.
 
     Args:
-        model: PyTorch module.
-        nds: List of ndarrays with matching shapes.
+        model: PyTorch MLP model.
+        nds: List of numpy arrays matching parameter shapes.
 
     Returns:
         None.
@@ -326,7 +348,7 @@ def mlp_set_params(model: nn.Module, nds: List[np.ndarray]) -> None:
 @dataclass
 class TabNetState:
     """
-    Container for TabNet state.
+    Container for TabNet state for consistency if extended later.
     """
     model: "TabNetClassifier"
     features: List[str]
@@ -352,7 +374,7 @@ def tabnet_set_params(model: "TabNetClassifier", nds: List[np.ndarray]) -> None:
 
     Args:
         model: TabNetClassifier.
-        nds: List of numpy arrays corresponding to state-dict order.
+        nds: List of numpy arrays aligned to state-dict keys order.
 
     Returns:
         None.
@@ -364,15 +386,15 @@ def tabnet_set_params(model: "TabNetClassifier", nds: List[np.ndarray]) -> None:
 
 class FederatedClient(fl.client.NumPyClient):
     """
-    A Flower NumPyClient that can train and evaluate multiple model types on a single hospital's data.
+    Flower NumPyClient that can train and evaluate multiple model types on a hospital's data.
     """
 
     def __init__(self, hospital_name: str):
         """
-        Prepare splits, scalers, and model holders for a hospital.
+        Prepare splits, normalization, and model holders for a given hospital.
 
         Args:
-            hospital_name: One of HOSPITALS keys, for example 'hospital_a'.
+            hospital_name: One of HOSPITALS keys (e.g., 'hospital_a').
         """
         self.hospital_name = hospital_name
         self.letter = HOSPITALS[hospital_name]
@@ -421,10 +443,10 @@ class FederatedClient(fl.client.NumPyClient):
 
     def _ensure_logreg(self) -> SGDClassifier:
         """
-        Ensure a logistic regression instance exists and is initialized.
+        Ensure a logistic regression model exists and is bootstrapped.
 
         Returns:
-            SGDClassifier instance with classes allocated.
+            SGDClassifier instance with classes initialized.
         """
         if self.logreg is None:
             self.logreg = logreg_init(self.Xtr_s64.shape[1])
@@ -436,7 +458,7 @@ class FederatedClient(fl.client.NumPyClient):
         Ensure an MLP model exists.
 
         Returns:
-            PyTorch module in training mode.
+            PyTorch MLP model in training mode.
         """
         if not TORCH_OK:
             raise RuntimeError("PyTorch not available for MLP.")
@@ -449,7 +471,7 @@ class FederatedClient(fl.client.NumPyClient):
         Ensure a TabNet classifier exists and is initialized.
 
         Returns:
-            TabNetClassifier initialized with a small warm-up fit.
+            TabNetClassifier instance.
         """
         if not (TORCH_OK and TABNET_OK):
             raise RuntimeError("pytorch and pytorch-tabnet required for TabNet.")
@@ -478,7 +500,7 @@ class FederatedClient(fl.client.NumPyClient):
         Return model parameters for the requested model type.
 
         Args:
-            config: Dict containing model_type.
+            config: Dict containing "model_type".
 
         Returns:
             List of numpy arrays representing parameters.
@@ -503,10 +525,10 @@ class FederatedClient(fl.client.NumPyClient):
 
         Args:
             parameters: Global parameters to initialize from.
-            config: Dict with keys phase, model_type, prox_mu.
+            config: Dict with keys "phase", "model_type", "prox_mu".
 
         Returns:
-            Tuple of (updated parameters, num_examples, metrics dict).
+            Tuple (updated_parameters, num_examples, metrics_dict).
         """
         mt = config.get("model_type", "logreg")
         prox_mu = float(config.get("prox_mu", 0.0))
@@ -553,16 +575,37 @@ class FederatedClient(fl.client.NumPyClient):
             n = int(self.Xtr_s32.shape[0])
             return out_params, n, {"hospital": self.hospital_name}
 
+        if mt == "tabnet":
+            if not (TORCH_OK and TABNET_OK):
+                raise RuntimeError("TabNet requires pytorch-tabnet + torch.")
+            model = self._ensure_tabnet()
+            if len(parameters) > 0:
+                tabnet_set_params(model, parameters)
+            model.fit(
+                self.Xtr_s32,
+                self.ytr,
+                eval_set=[(self.Xva_s32, self.yva)],
+                max_epochs=TABNET_CFG["local_epochs"],
+                patience=TABNET_CFG.get("patience", 2),
+                batch_size=TABNET_CFG.get("batch_size", 256),
+                virtual_batch_size=TABNET_CFG.get("virtual_batch_size", 128)
+            )
+            out_params = tabnet_get_params(model)
+            n = int(self.Xtr_s32.shape[0])
+            return out_params, n, {"hospital": self.hospital_name}
+
+        raise ValueError(f"Unknown model_type: {mt}")
+
     def evaluate(self, parameters, config):
         """
-        Evaluate the requested model type on test data or perform ensemble evaluation.
+        Evaluate a model on test data or perform ensemble evaluation.
 
         Args:
-            parameters: Global parameters of the model or empty for ensemble.
-            config: Dict with phase and model_type. For ensemble, contains all model parameters.
+            parameters: Global parameters for the model (empty for ensemble).
+            config: Dict with "phase" and "model_type"; ensemble includes all model params.
 
         Returns:
-            Tuple of (loss, num_examples, metrics dict).
+            Tuple (loss, num_examples, metrics_dict).
         """
         phase = config.get("phase", "eval")
         mt = config.get("model_type", "logreg")
@@ -629,25 +672,25 @@ class FederatedClient(fl.client.NumPyClient):
 
 class MultiModelFedAvg(fl.server.strategy.Strategy):
     """
-    A Flower Strategy that trains several model types in sequence using FedAvg,
+    Flower Strategy that trains several model types in sequence using FedAvg,
     then runs a client-side ensemble evaluation across all trained models.
+    Logs summaries and artifacts to MLflow.
     """
 
     def __init__(self, models: List[str], rounds_per_model: int, expected_clients: int = 3, prox_mu: float = 0.0):
         """
-        Initialize the multi-model FedAvg strategy.
+        Initialize the strategy.
 
         Args:
-            models: Model type names in training order.
+            models: Model type names in training order (e.g., ["logreg", "mlp", "tabnet"]).
             rounds_per_model: Number of FedAvg rounds per model.
-            expected_clients: Number of clients to sample per round.
-            prox_mu: FedProx regularization coefficient.
+            expected_clients: Clients sampled per round.
+            prox_mu: FedProx regularization coefficient (0.0 -> FedAvg).
         """
         self.models = models
         self.rounds_per_model = rounds_per_model
         self.expected_clients = expected_clients
         self.prox_mu = prox_mu
-
         self.current_model_idx = 0
         self.current_round_for_model = 0
         self.global_params_by_model: Dict[str, List[np.ndarray]] = {}
@@ -655,10 +698,10 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
 
     def _current_model(self) -> Optional[str]:
         """
-        Return the current model type or None if finished.
+        Return the current model type or None if all models are finished.
 
         Returns:
-            Model type string or None.
+            Current model type string or None.
         """
         if self.current_model_idx >= len(self.models):
             return None
@@ -666,7 +709,7 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
 
     def _advance_round(self) -> None:
         """
-        Advance round counters and switch model if needed.
+        Advance internal counters and switch to next model when needed.
         """
         self.current_round_for_model += 1
         if self.current_round_for_model >= self.rounds_per_model:
@@ -675,13 +718,13 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
 
     def initialize_parameters(self, client_manager):
         """
-        Let clients bootstrap parameters for the first model.
+        Request initial parameters from a client for the first model.
 
         Args:
             client_manager: Flower client manager.
 
         Returns:
-            None to request initial params from clients.
+            None (signals Flower to ask a client for initial parameters).
         """
         return None
 
@@ -691,11 +734,11 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
 
         Args:
             server_round: Current round number.
-            parameters: Unused global parameters.
+            parameters: Unused global parameters for this custom strategy.
             client_manager: Flower client manager.
 
         Returns:
-            List of (client, FitIns) pairs.
+            List of (client, FitIns) tuples with per-client fit instructions.
         """
         mt = self._current_model()
         if mt is None:
@@ -711,6 +754,7 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
     def aggregate_fit(self, server_round, results, failures):
         """
         Aggregate client updates via weighted averaging and store global parameters.
+        Optionally store weights as artifacts (and log to MLflow).
 
         Args:
             server_round: Current round number.
@@ -718,7 +762,7 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
             failures: List of failures.
 
         Returns:
-            Tuple of (Parameters, metrics dict).
+            Tuple of (Parameters, metrics dict) to broadcast to clients.
         """
         mt = self._current_model()
         if mt is None or len(results) == 0:
@@ -746,6 +790,15 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
             ensure_dir(GLOBAL_WEIGHTS_DIR)
             out = GLOBAL_WEIGHTS_DIR / f"global_{mt}.npz"
             np.savez(out, **{f"layer_{i}": w for i, w in enumerate(avg)})
+            try:
+                exp_name = f"{MLFLOW_EXPERIMENT_PREFIX}{mt}"
+                mlflow.set_experiment(exp_name)
+                with mlflow.start_run(run_name=f"round_{server_round}_{mt}_weights", nested=True):
+                    mlflow.log_param("model", mt)
+                    mlflow.log_param("server_round", server_round)
+                    mlflow.log_artifact(str(out))
+            except Exception:
+                pass
 
         self._advance_round()
         return ndarrays_to_parameters(avg), {}
@@ -756,11 +809,11 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
 
         Args:
             server_round: Current round number.
-            parameters: Global parameters.
+            parameters: Global parameters (unused for ensemble).
             client_manager: Flower client manager.
 
         Returns:
-            List of (client, EvaluateIns) pairs.
+            List of (client, EvaluateIns) tuples.
         """
         mt = self._current_model()
         clients = client_manager.sample(num_clients=self.expected_clients)
@@ -779,7 +832,7 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
 
     def aggregate_evaluate(self, server_round, results, failures):
         """
-        Aggregate evaluation metrics from clients and write final CSV/JSON summaries.
+        Aggregate evaluation metrics from clients, write CSV/JSON, and log to MLflow.
 
         Args:
             server_round: Round number.
@@ -787,7 +840,7 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
             failures: List of failures.
 
         Returns:
-            Tuple of (loss, metrics dict).
+            Tuple (mean_loss, metrics_dict) for Flower history.
         """
         ensure_dir(REPORT_DIR)
         recs = []
@@ -800,35 +853,54 @@ class MultiModelFedAvg(fl.server.strategy.Strategy):
             return 0.0, {}
 
         df = pd.DataFrame(recs)
+        mean_loss = float(np.mean([evr.loss for _, evr in results]))
+
+        def log_to_mlflow(model_name: str, macro: dict, micro: dict, df_clients: pd.DataFrame):
+            exp_name = f"{MLFLOW_EXPERIMENT_PREFIX}{model_name}"
+            mlflow.set_experiment(exp_name)
+            with mlflow.start_run(run_name=f"round_{server_round}_{model_name}"):
+                mlflow.log_metric("mean_loss", mean_loss)
+                mlflow.log_param("num_clients", len(df_clients))
+                mlflow.log_param("model", model_name)
+                for k, v in macro.items():
+                    if pd.notna(v):
+                        mlflow.log_metric(f"macro_{k}", float(v))
+                for k, v in micro.items():
+                    if pd.notna(v):
+                        mlflow.log_metric(f"micro_{k}", float(v))
+                if LOG_MODE == "all":
+                    tmp_path = REPORT_DIR / f"{model_name}_client_metrics_round{server_round}.csv"
+                    df_clients.to_csv(tmp_path, index=False)
+                    mlflow.log_artifact(str(tmp_path))
 
         if "ensemble_used" in df.columns:
             df.to_csv(REPORT_DIR / "ensemble_client_metrics.csv", index=False)
             macro, micro = macro_micro(df)
             with open(REPORT_DIR / "ensemble_summary.json", "w") as f:
                 json.dump({"rows": int(df.shape[0]), "macro": macro, "micro": micro}, f, indent=2)
-        else:
-            if "model_type" in df.columns:
-                mt_vals = df["model_type"].unique().tolist()
-                if len(mt_vals) == 1:
-                    mt = mt_vals[0]
-                    df.to_csv(REPORT_DIR / f"{mt}_client_metrics.csv", index=False)
-                    macro, micro = macro_micro(df)
-                    with open(REPORT_DIR / f"{mt}_summary.json", "w") as f:
-                        json.dump({"rows": int(df.shape[0]), "macro": macro, "micro": micro}, f, indent=2)
+            log_to_mlflow("ensemble", macro, micro, df)
+        elif "model_type" in df.columns:
+            mt_vals = df["model_type"].unique().tolist()
+            if len(mt_vals) == 1:
+                mt = mt_vals[0]
+                df.to_csv(REPORT_DIR / f"{mt}_client_metrics.csv", index=False)
+                macro, micro = macro_micro(df)
+                with open(REPORT_DIR / f"{mt}_summary.json", "w") as f:
+                    json.dump({"rows": int(df.shape[0]), "macro": macro, "micro": micro}, f, indent=2)
+                log_to_mlflow(mt, macro, micro, df)
 
-        mean_loss = float(np.mean([evr.loss for _, evr in results]))
         return mean_loss, {}
 
     def evaluate(self, server_round, parameters):
         """
-        No server-side evaluation.
+        Skip server-side evaluation (client-side only in this setup).
 
         Args:
-            server_round: Round number.
-            parameters: Global parameters.
+            server_round: Current round number.
+            parameters: Global parameters (unused).
 
         Returns:
-            None to skip.
+            None to indicate no server-side evaluation.
         """
         return None
 
@@ -848,7 +920,12 @@ def run_server(address: str, models: List[str], rounds_per_model: int, prox_mu: 
     """
     ensure_dir(REPORT_DIR)
     ensure_dir(MODEL_DIR)
-    strategy = MultiModelFedAvg(models=models, rounds_per_model=rounds_per_model, expected_clients=EXPECTED_CLIENTS, prox_mu=prox_mu)
+    strategy = MultiModelFedAvg(
+        models=models,
+        rounds_per_model=rounds_per_model,
+        expected_clients=EXPECTED_CLIENTS,
+        prox_mu=prox_mu,
+    )
     fl.server.start_server(
         server_address=address,
         config=fl.server.ServerConfig(num_rounds=len(models) * rounds_per_model + 1),
@@ -881,7 +958,7 @@ def parse_models(s: str) -> List[str]:
         s: String like "logreg,mlp,tabnet".
 
     Returns:
-        List of valid model names with unknowns rejected.
+        List of valid model names with unknowns rejected and 'fgb' dropped (stub).
     """
     raw = [x.strip().lower() for x in s.split(",") if x.strip()]
     allowed = {"logreg", "mlp", "tabnet", "fgb"}
@@ -893,15 +970,15 @@ def parse_models(s: str) -> List[str]:
 
 def main() -> None:
     """
-    CLI entrypoint to run server or client.
+    CLI entrypoint to run Flower server or client with MLflow logging.
     """
     p = argparse.ArgumentParser()
     p.add_argument("--role", choices=["server", "client"], required=True)
     p.add_argument("--address", default="127.0.0.1:8080")
     p.add_argument("--hospital", choices=list(HOSPITALS.keys()))
     p.add_argument("--models", default="logreg,mlp,tabnet", help="Comma-separated among: logreg,mlp,tabnet,fgb (fgb is ignored).")
-    p.add_argument("--rounds_per_model", type=int, default=ROUNDS_PER_MODEL)
-    p.add_argument("--prox_mu", type=float, default=FED_PROX_MU, help="FedProx mu (0.0 = FedAvg).")
+    p.add_argument("--rounds_per_model", type=int, default=3)
+    p.add_argument("--prox_mu", type=float, default=0.0, help="FedProx mu (0.0 = FedAvg).")
     args = p.parse_args()
 
     if args.role == "server":
