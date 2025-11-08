@@ -19,7 +19,11 @@ dependencies = [
     "tensorflow>=2.11.1,<2.18.0",
     "scikit-learn>=1.3.0",
     "google-cloud-bigquery>=3.11.0",
-    "db-dtypes>=1.1.1",  # Required for BigQuery data types
+    "db-dtypes>=1.1.1",
+    # --- MLflow & plotting (added) ---
+    "mlflow>=2.8.0",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -53,6 +57,6 @@ options.num-supernodes = 3
 
 # Remote federation example for use with SuperLink
 [tool.flwr.federations.remote-federation]
-address = "<SUPERLINK-ADDRESS>:<PORT>"
+address = "superlink:9093"
 insecure = true  # Remove this line to enable TLS
 # root-certificates = "<PATH/TO/ca.crt>"  # For TLS setup

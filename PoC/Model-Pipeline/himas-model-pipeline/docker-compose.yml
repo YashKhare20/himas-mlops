@@ -1,0 +1,154 @@
+version: "3.9"
+
+services:
+  # 1) Central MLflow tracking server
+  mlflow:
+    container_name: himas-mlflow
+    build:
+      context: .
+      # uses the normal Dockerfile in this folder
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlruns
+      - ./mlflow.db:/mlflow.db
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow.db
+      --artifacts-destination /mlruns
+      --host 0.0.0.0
+      --port 5000
+      --allowed-hosts "mlflow:5000,localhost:5000,127.0.0.1:5000"
+      --cors-allowed-origins "*"
+
+
+
+  # 2) Flower SuperLink (router for server & supernodes)
+  superlink:
+    build: .
+    container_name: himas-superlink
+    command: >
+      flower-superlink --insecure
+      --control-api-address 0.0.0.0:9093
+      --serverappio-api-address 0.0.0.0:9091
+      --fleet-api-address 0.0.0.0:9092
+    ports:
+      - "9091:9091"
+      - "9092:9092"
+      - "9093:9093"
+
+  # 3) Federated ServerApp (coordinates training)
+  server:
+    build: .
+    container_name: himas-server
+    depends_on:
+      - superlink
+      - mlflow
+    environment:
+      # Point Python components to MLflow inside the compose network
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_NAME: himas-federated
+
+      # Use your user ADC instead of service account
+      GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
+      GOOGLE_CLOUD_PROJECT: erudite-carving-472018-r5
+    working_dir: /app
+    volumes:
+      - .:/app
+      # mount your gcloud directory (with ADC file) into the container
+      - "C:/Users/%USERNAME%/AppData/Roaming/gcloud:/gcloud:ro"
+      - ./models:/app/models
+    command: >
+      flwr run . remote-federation --stream
+
+  # 4) SuperNode / client partition 0 (hospital_a)
+  supernode_a:
+    build: .
+    container_name: himas-supernode-a
+    depends_on:
+      - superlink
+      - mlflow
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_NAME: himas-federated
+      GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
+      GOOGLE_CLOUD_PROJECT: erudite-carving-472018-r5
+    working_dir: /app
+    volumes:
+      - .:/app
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/gcloud:ro"
+    command: >
+      flower-supernode --insecure
+      --superlink superlink:9092
+      --clientappio-api-address 0.0.0.0:9095
+      --node-config "partition-id=0 num-partitions=3"
+    ports:
+      - "9095:9095"
+
+  # 5) SuperNode / client partition 1 (hospital_b)
+  supernode_b:
+    build: .
+    container_name: himas-supernode-b
+    depends_on:
+      - superlink
+      - mlflow
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_NAME: himas-federated
+      GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
+      GOOGLE_CLOUD_PROJECT: erudite-carving-472018-r5
+    working_dir: /app
+    volumes:
+      - .:/app
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/gcloud:ro"
+    command: >
+      flower-supernode --insecure
+      --superlink superlink:9092
+      --clientappio-api-address 0.0.0.0:9096
+      --node-config "partition-id=1 num-partitions=3"
+    ports:
+      - "9096:9096"
+
+  # 6) SuperNode / client partition 2 (hospital_c)
+  supernode_c:
+    build: .
+    container_name: himas-supernode-c
+    depends_on:
+      - superlink
+      - mlflow
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_NAME: himas-federated
+      GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
+      GOOGLE_CLOUD_PROJECT: erudite-carving-472018-r5
+    working_dir: /app
+    volumes:
+      - .:/app
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/gcloud:ro"
+    command: >
+      flower-supernode --insecure
+      --superlink superlink:9092
+      --clientappio-api-address 0.0.0.0:9097
+      --node-config "partition-id=2 num-partitions=3"
+    ports:
+      - "9097:9097"
+
+  # 7) Optional: separate evaluation container
+  evaluator:
+    build: .
+    container_name: himas-evaluator
+    depends_on:
+      - mlflow
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_NAME: himas-federated-eval
+      GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
+      GOOGLE_CLOUD_PROJECT: erudite-carving-472018-r5
+    working_dir: /app
+    volumes:
+      - .:/app
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/gcloud:ro"
+      - ./models:/app/models
+      - ./evaluation_results:/app/evaluation_results
+    command: >
+      python evaluate_model.py
