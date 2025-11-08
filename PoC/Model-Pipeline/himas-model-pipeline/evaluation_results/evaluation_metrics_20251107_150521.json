@@ -1,0 +1,90 @@
+[
+  {
+    "hospital": "hospital_a",
+    "n_samples": 5059,
+    "n_positive": 593,
+    "n_negative": 4466,
+    "prevalence": 0.11721684127297885,
+    "accuracy": 0.9068985965605851,
+    "precision": 0.5965189873417721,
+    "recall": 0.6357504215851602,
+    "f1_score": 0.6155102040816327,
+    "roc_auc": 0.9098226887957654,
+    "average_precision": 0.5473592849215935,
+    "confusion_matrix": {
+      "true_negatives": 4211,
+      "false_positives": 255,
+      "false_negatives": 216,
+      "true_positives": 377
+    },
+    "specificity": 0.9429019256605463,
+    "npv": 0.9512084933363452,
+    "ppv": 0.5965189873417721
+  },
+  {
+    "hospital": "hospital_b",
+    "n_samples": 4378,
+    "n_positive": 538,
+    "n_negative": 3840,
+    "prevalence": 0.12288716308816812,
+    "accuracy": 0.910918227501142,
+    "precision": 0.6088235294117647,
+    "recall": 0.7695167286245354,
+    "f1_score": 0.6798029556650246,
+    "roc_auc": 0.9288588135068154,
+    "average_precision": 0.6488834029421042,
+    "confusion_matrix": {
+      "true_negatives": 3574,
+      "false_positives": 266,
+      "false_negatives": 124,
+      "true_positives": 414
+    },
+    "specificity": 0.9307291666666667,
+    "npv": 0.9664683612763656,
+    "ppv": 0.6088235294117647
+  },
+  {
+    "hospital": "hospital_c",
+    "n_samples": 3237,
+    "n_positive": 359,
+    "n_negative": 2878,
+    "prevalence": 0.11090515909793018,
+    "accuracy": 0.9076305220883534,
+    "precision": 0.6006711409395973,
+    "recall": 0.4986072423398329,
+    "f1_score": 0.5449010654490106,
+    "roc_auc": 0.9035154790641133,
+    "average_precision": 0.5410467132231211,
+    "confusion_matrix": {
+      "true_negatives": 2759,
+      "false_positives": 119,
+      "false_negatives": 180,
+      "true_positives": 179
+    },
+    "specificity": 0.9586518415566365,
+    "npv": 0.938754678462062,
+    "ppv": 0.6006711409395973
+  },
+  {
+    "hospital": "AGGREGATED",
+    "n_samples": 12674,
+    "n_positive": 1490,
+    "n_negative": 11184,
+    "prevalence": 0.11756351585923938,
+    "accuracy": 0.9084740413444847,
+    "precision": 0.6024844720496895,
+    "recall": 0.6510067114093959,
+    "f1_score": 0.6258064516129033,
+    "roc_auc": 0.9141649504085415,
+    "average_precision": 0.5723101661783923,
+    "confusion_matrix": {
+      "true_negatives": 10544,
+      "false_positives": 640,
+      "false_negatives": 520,
+      "true_positives": 970
+    },
+    "specificity": 0.9427753934191703,
+    "npv": 0.953000723065799,
+    "ppv": 0.6024844720496895
+  }
+]
