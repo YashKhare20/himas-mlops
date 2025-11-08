@@ -76,7 +76,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/gcloud:ro"
+      - "C:/Users/%USERNAME%/AppData/Roaming/gcloud:/gcloud:ro"
     command: >
       flower-supernode --insecure
       --superlink superlink:9092
@@ -100,7 +100,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/gcloud:ro"
+      - "C:/Users/%USERNAME%/AppData/Roaming/gcloud:/gcloud:ro"
     command: >
       flower-supernode --insecure
       --superlink superlink:9092
@@ -124,7 +124,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/gcloud:ro"
+      - "C:/Users/%USERNAME%/AppData/Roaming/gcloud:/gcloud:ro"
     command: >
       flower-supernode --insecure
       --superlink superlink:9092
@@ -147,7 +147,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/gcloud:ro"
+      - "C:/Users/%USERNAME%/AppData/Roaming/gcloud:/gcloud:ro"
       - ./models:/app/models
       - ./evaluation_results:/app/evaluation_results
     command: >
