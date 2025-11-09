@@ -2,7 +2,7 @@
 
 from flwr.app import ArrayRecord, Context, Message, MetricRecord, RecordDict
 from flwr.clientapp import ClientApp
-from himas_model_pipeline.task import load_data_from_bigquery, load_model, get_feature_dim
+from himas_model_pipeline.task import load_data_from_bigquery, load_model, get_feature_dim, set_random_seed
 from sklearn.utils.class_weight import compute_class_weight
 import numpy as np
 
@@ -13,6 +13,10 @@ app = ClientApp()
 @app.train()
 def train(msg: Message, context: Context):
     """Train the model on local hospital data."""
+
+    # Set random seed from config for reproducibility
+    random_seed = context.run_config.get("random-seed", 42)
+    set_random_seed(random_seed)
 
     # Load the data for this hospital
     partition_id = context.node_config["partition-id"]
@@ -49,6 +53,7 @@ def train(msg: Message, context: Context):
         batch_size=batch_size,
         class_weight=class_weight_dict,
         verbose=verbose,
+        shuffle=True,  # Shuffle for better training, but with fixed seed for reproducibility
     )
 
     # Extract metrics
@@ -76,6 +81,10 @@ def train(msg: Message, context: Context):
 @app.evaluate()
 def evaluate(msg: Message, context: Context):
     """Evaluate the model on local hospital validation data."""
+
+    # Set random seed from config for reproducibility
+    random_seed = context.run_config.get("random-seed", 42)
+    set_random_seed(random_seed)
 
     # Load the data for this hospital
     partition_id = context.node_config["partition-id"]

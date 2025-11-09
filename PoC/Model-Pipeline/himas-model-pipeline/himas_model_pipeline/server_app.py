@@ -3,7 +3,7 @@
 from flwr.app import ArrayRecord, Context
 from flwr.serverapp import Grid, ServerApp
 from flwr.serverapp.strategy import FedAvg
-from himas_model_pipeline.task import load_model
+from himas_model_pipeline.task import load_model, set_random_seed
 from pathlib import Path
 
 # Create ServerApp
@@ -17,6 +17,10 @@ def main(grid: Grid, context: Context) -> None:
 
     Coordinates federated learning across 3 hospitals for ICU mortality prediction.
     """
+
+    # Set random seed from config for reproducibility
+    random_seed = context.run_config.get("random-seed", 42)
+    set_random_seed(random_seed)
 
     # Read run config
     num_rounds: int = context.run_config["num-server-rounds"]

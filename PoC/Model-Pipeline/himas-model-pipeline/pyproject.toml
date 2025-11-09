@@ -42,6 +42,7 @@ batch-size = 32
 fraction-train = 1.0    # Use all hospitals for training
 fraction-evaluate = 1.0 # Use all hospitals for evaluation
 verbose = true
+random-seed = 42        # Random seed for reproducibility
 
 # Default federation to use when running the app
 [tool.flwr.federations]

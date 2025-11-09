@@ -8,9 +8,25 @@ from keras import layers
 from google.cloud import bigquery
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from typing import Tuple, Dict
+import random
+import tensorflow as tf
 
 # Make TensorFlow log less verbose
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+
+def set_random_seed(seed: int = 42) -> None:
+    """
+    Set random seeds for reproducibility across all libraries.
+    
+    Args:
+        seed: Random seed value to use
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    print(f"🎲 Random seed set to: {seed}")
 
 # Configuration
 PROJECT_ID = "erudite-carving-472018-r5"
