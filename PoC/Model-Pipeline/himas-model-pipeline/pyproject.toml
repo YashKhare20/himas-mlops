@@ -44,6 +44,12 @@ fraction-evaluate = 1.0 # Use all hospitals for evaluation
 verbose = true
 random-seed = 42        # Random seed for reproducibility
 
+# Differential Privacy configuration
+enable-differential-privacy = true
+dp-noise-multiplier = 1.0
+dp-clipping-norm = 1.0
+dp-num-sampled-clients = 3
+
 # Default federation to use when running the app
 [tool.flwr.federations]
 default = "local-simulation"

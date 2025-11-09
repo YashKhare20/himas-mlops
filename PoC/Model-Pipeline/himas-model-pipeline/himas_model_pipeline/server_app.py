@@ -2,7 +2,7 @@
 
 from flwr.app import ArrayRecord, Context
 from flwr.serverapp import Grid, ServerApp
-from flwr.serverapp.strategy import FedAvg
+from flwr.serverapp.strategy import FedAvg, DifferentialPrivacyServerSideFixedClipping
 from himas_model_pipeline.task import load_model, set_random_seed
 from pathlib import Path
 
@@ -26,6 +26,12 @@ def main(grid: Grid, context: Context) -> None:
     num_rounds: int = context.run_config["num-server-rounds"]
     fraction_train: float = context.run_config.get("fraction-train", 1.0)
     fraction_evaluate: float = context.run_config.get("fraction-evaluate", 1.0)
+
+    # Read DP config
+    enable_dp = context.run_config.get("enable-differential-privacy", False)
+    dp_noise_multiplier = context.run_config.get("dp-noise-multiplier", 1.0)
+    dp_clipping_norm = context.run_config.get("dp-clipping-norm", 1.0)
+    dp_num_sampled_clients = context.run_config.get("dp-num-sampled-clients", 3)
 
     print("\n" + "="*60)
     print("HIMAS Federated Learning - ICU Mortality Prediction")
@@ -51,6 +57,16 @@ def main(grid: Grid, context: Context) -> None:
         min_evaluate_nodes=2,  # Minimum 2 hospitals for evaluation
         min_available_nodes=3,  # All 3 hospitals should be available
     )
+
+    # Wrap with DP if enabled
+    if enable_dp:
+        strategy = DifferentialPrivacyServerSideFixedClipping(
+            strategy,
+            noise_multiplier=dp_noise_multiplier,
+            clipping_norm=dp_clipping_norm,
+            num_sampled_clients=dp_num_sampled_clients,
+        )
+        print(f"Differential Privacy enabled (noise={dp_noise_multiplier})")
 
     # Start federated learning
     print("Starting federated learning across hospitals...")
