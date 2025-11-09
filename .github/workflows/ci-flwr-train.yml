@@ -40,14 +40,16 @@ jobs:
       - name: Evaluate model
         working-directory: PoC/Model-Pipeline/himas-model-pipeline
         run: |
+          echo "Creating evaluation_results directory..."
+          mkdir -p evaluation_results
           echo "Running evaluation step..."
           python evaluate_model.py || echo "Evaluation step completed"
-
 
       # Step 6: Save evaluation artifacts
       - name: Upload evaluation results
         uses: actions/upload-artifact@v4
         with:
           name: evaluation-results
-          path: evaluation_results/
+          path: PoC/Model-Pipeline/himas-model-pipeline/evaluation_results/
+
 
