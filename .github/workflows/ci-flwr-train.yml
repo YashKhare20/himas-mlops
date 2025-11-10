@@ -106,21 +106,4 @@ jobs:
 
   # Step 8: Upload model to GCS if validation passed
 
-  - name: Upload Model to GCS (if validation passed)
-    if: success()  # only runs if all previous steps succeeded
-    env:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-    run: |
-      echo "$GCP_SA_KEY" > sa-key.json
-      gcloud auth activate-service-account --key-file=sa-key.json
-      gcloud config set project "$GCP_PROJECT_ID"
-
-      TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
-      MODEL_PATH="models/himas_federated_mortality_model.keras"
-      DEST_PATH="gs://himas-mlops-models/model_${TIMESTAMP}.keras"
-
-      echo "📦 Uploading $MODEL_PATH to $DEST_PATH ..."
-      gsutil cp "$MODEL_PATH" "$DEST_PATH"
-
-      echo "✅ Model successfully uploaded to GCS: $DEST_PATH"
+  
