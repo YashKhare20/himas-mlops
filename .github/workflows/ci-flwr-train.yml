@@ -29,6 +29,12 @@ jobs:
           pip install hatchling
           pip install .
 
+      - name: Install jq and bc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq bc
+
+
       # Step 4: Run model training (Flower Simulation)
       - name: Run federated training
         working-directory: PoC/Model-Pipeline/himas-model-pipeline
@@ -52,4 +58,48 @@ jobs:
           name: evaluation-results
           path: PoC/Model-Pipeline/himas-model-pipeline/evaluation_results/
 
+      
+      # Step 7: Validate model performance threshold
+      - name: Validate model performance thresholds
+        working-directory: PoC/Model-Pipeline/himas-model-pipeline
+        run: |
+          echo "🔍 Validating multiple model metrics (accuracy + recall)..."
 
+          # Extract metrics for AGGREGATED results
+          ACCURACY=$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/*.json)
+          RECALL=$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/*.json)
+
+          echo "Aggregated Accuracy: $ACCURACY"
+          echo "Aggregated Recall: $RECALL"
+
+          # Define thresholds
+          ACC_THRESHOLD=0.85
+          REC_THRESHOLD=0.60
+
+          # Check accuracy
+          if (( $(echo "$ACCURACY < $ACC_THRESHOLD" | bc -l) )); then
+            echo "❌ Model accuracy ($ACCURACY) below threshold ($ACC_THRESHOLD)"
+            FAIL=true
+          else
+            echo "✅ Model accuracy passes threshold"
+          fi
+
+          # Check recall
+          if (( $(echo "$RECALL < $REC_THRESHOLD" | bc -l) )); then
+            echo "❌ Model recall ($RECALL) below threshold ($REC_THRESHOLD)"
+            FAIL=true
+          else
+            echo "✅ Model recall passes threshold"
+          fi
+
+          # Final decision
+          if [ "$FAIL" = true ]; then
+            echo "🚫 Model failed validation checks — stopping pipeline."
+            exit 1
+          else
+            echo "🎉 All validation checks passed!"
+          fi
+
+
+
+# bias check - locally or globally
