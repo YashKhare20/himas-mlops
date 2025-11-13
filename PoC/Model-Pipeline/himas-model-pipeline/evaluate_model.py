@@ -31,7 +31,8 @@ mlflow.set_experiment(_MLFLOW_EXP)
 
 # Configuration
 PROJECT_ID = "erudite-carving-472018-r5"
-DATASET_ID = "federated"
+# DATASET_ID = "federated"
+DATASET_ID = "federated_demo"
 MODEL_PATH = "models/himas_federated_mortality_model.keras"
 
 HOSPITALS = ["hospital_a", "hospital_b", "hospital_c"]
