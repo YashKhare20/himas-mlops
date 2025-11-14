@@ -108,157 +108,183 @@ def train(msg: Message, context: Context) -> Message:
     logger.info("TRAINING TASK STARTED")
     logger.info("="*70)
 
-    # Get round number
-    round_num = get_round_number(context)
+    try:
+        # Get round number
+        logger.info("🔄 Getting round number...")
+        round_num = get_round_number(context)
+        logger.info(f"✅ Round number: {round_num}")
 
-    # Configure reproducibility
-    seed = context.run_config.get(
-        "random-seed", get_config_value('tool.flwr.app.config.random-seed', 42))
-    set_seed(seed)
+        # Configure reproducibility
+        logger.info("🔄 Configuring reproducibility...")
+        seed = context.run_config.get(
+            "random-seed", get_config_value('tool.flwr.app.config.random-seed', 42))
+        set_seed(seed)
+        logger.info(f"✅ Random seed set: {seed}")
 
-    # Get hospital assignment
-    partition_id = context.node_config["partition-id"]
-    num_partitions = context.node_config["num-partitions"]
-    hospital_names = get_config_value(
-        'tool.himas.data.hospital-names', ['hospital_a', 'hospital_b', 'hospital_c'])
-    hospital_name = hospital_names[partition_id]
+        # Get hospital assignment
+        logger.info("🔄 Getting hospital assignment...")
+        partition_id = context.node_config["partition-id"]
+        num_partitions = context.node_config["num-partitions"]
+        hospital_names = get_config_value(
+            'tool.himas.data.hospital-names', ['hospital_a', 'hospital_b', 'hospital_c'])
+        hospital_name = hospital_names[partition_id]
 
-    logger.info(
-        f"Round {round_num} | Hospital: {hospital_name} (Partition {partition_id}/{num_partitions})")
+        logger.info(
+            f"Round {round_num} | Hospital: {hospital_name} (Partition {partition_id}/{num_partitions})")
 
-    # Load hospital data
-    x_train, y_train, x_val, y_val = load_data_from_bigquery(
-        partition_id, num_partitions)
+        # Load hospital data
+        logger.info("🔄 Loading hospital data from BigQuery...")
+        x_train, y_train, x_val, y_val = load_data_from_bigquery(
+            partition_id, num_partitions)
+        logger.info(f"✅ Data loaded: {len(x_train):,} train samples, {len(x_val):,} val samples")
 
-    # Build model with shared architecture
-    input_dim = get_feature_dim()
-    hyperparameters = get_shared_hyperparameters(context)
-    model = load_model(input_dim, hyperparameters, seed)
+        # Build model with shared architecture
+        logger.info("🔄 Building model...")
+        input_dim = get_feature_dim()
+        hyperparameters = get_shared_hyperparameters(context)
+        model = load_model(input_dim, hyperparameters, seed)
+        logger.info(f"✅ Model built with input_dim={input_dim}")
 
-    # Initialize with global weights
-    model.set_weights(msg.content["arrays"].to_numpy_ndarrays())
+        # Initialize with global weights
+        logger.info("🔄 Setting global weights...")
+        model.set_weights(msg.content["arrays"].to_numpy_ndarrays())
+        logger.info("✅ Global weights set successfully")
 
-    # Training configuration
-    epochs = context.run_config.get("local-epochs", 5)
-    batch_size = context.run_config.get("batch-size", 64)
-    verbose = context.run_config.get("verbose", 1)
+        # Training configuration
+        epochs = context.run_config.get("local-epochs", 5)
+        batch_size = context.run_config.get("batch-size", 64)
+        verbose = context.run_config.get("verbose", 1)
 
-    # Compute class weights for mortality imbalance
-    class_weights = compute_class_weight(
-        'balanced', classes=np.unique(y_train), y=y_train)
-    class_weight_dict = {i: weight for i, weight in enumerate(class_weights)}
-    logger.info(f"Class weights: {class_weight_dict}")
+        # Compute class weights for mortality imbalance
+        logger.info("🔄 Computing class weights...")
+        class_weights = compute_class_weight(
+            'balanced', classes=np.unique(y_train), y=y_train)
+        class_weight_dict = {i: weight for i, weight in enumerate(class_weights)}
+        logger.info(f"Class weights: {class_weight_dict}")
 
-    # Configure training callbacks
-    callbacks = []
+        # Configure training callbacks
+        callbacks = []
 
-    if context.run_config.get("use-early-stopping", True):
-        callbacks.append(keras.callbacks.EarlyStopping(
-            monitor='val_auc',
-            patience=context.run_config.get("early-stopping-patience", 3),
-            mode='max',
-            restore_best_weights=True,
-            verbose=1
-        ))
+        if context.run_config.get("use-early-stopping", True):
+            callbacks.append(keras.callbacks.EarlyStopping(
+                monitor='val_auc',
+                patience=context.run_config.get("early-stopping-patience", 3),
+                mode='max',
+                restore_best_weights=True,
+                verbose=1
+            ))
 
-    if context.run_config.get("use-reduce-lr", True):
-        callbacks.append(keras.callbacks.ReduceLROnPlateau(
-            monitor='val_loss',
-            factor=context.run_config.get("reduce-lr-factor", 0.5),
-            patience=context.run_config.get("reduce-lr-patience", 2),
-            min_lr=context.run_config.get("reduce-lr-min", 1e-7),
-            verbose=1
-        ))
+        if context.run_config.get("use-reduce-lr", True):
+            callbacks.append(keras.callbacks.ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=context.run_config.get("reduce-lr-factor", 0.5),
+                patience=context.run_config.get("reduce-lr-patience", 2),
+                min_lr=context.run_config.get("reduce-lr-min", 1e-7),
+                verbose=1
+            ))
 
-    logger.info(
-        f"Training: {len(x_train):,} samples, max {epochs} epochs, batch_size={batch_size}")
+        logger.info(
+            f"Training: {len(x_train):,} samples, max {epochs} epochs, batch_size={batch_size}")
 
-    # Train with validation monitoring
-    history = model.fit(
-        x_train, y_train,
-        validation_data=(x_val, y_val),
-        epochs=epochs,
-        batch_size=batch_size,
-        class_weight=class_weight_dict,
-        callbacks=callbacks,
-        shuffle=True,
-        verbose=verbose
-    )
+        # Train with validation monitoring
+        logger.info("🔄 Starting model.fit()...")
+        history = model.fit(
+            x_train, y_train,
+            validation_data=(x_val, y_val),
+            epochs=epochs,
+            batch_size=batch_size,
+            class_weight=class_weight_dict,
+            callbacks=callbacks,
+            shuffle=True,
+            verbose=verbose
+        )
+        logger.info("✅ model.fit() completed successfully")
 
-    # Extract metrics
-    actual_epochs = len(history.history['loss'])
+        # Extract metrics
+        actual_epochs = len(history.history['loss'])
 
-    metrics = {
-        "hospital": hospital_name,
-        "partition_id": partition_id,
-        "n_train": len(x_train),
-        "n_val": len(x_val),
-        "epochs": actual_epochs,
-        "train_loss": float(history.history['loss'][-1]),
-        "train_acc": float(history.history['accuracy'][-1]),
-        "train_auc": float(history.history['auc'][-1]),
-        "train_precision": float(history.history['precision'][-1]),
-        "train_recall": float(history.history['recall'][-1]),
-        "val_loss": float(history.history['val_loss'][-1]),
-        "val_acc": float(history.history['val_accuracy'][-1]),
-        "val_auc": float(history.history['val_auc'][-1]),
-        "val_precision": float(history.history['val_precision'][-1]),
-        "val_recall": float(history.history['val_recall'][-1])
-    }
+        metrics = {
+            "hospital": hospital_name,
+            "partition_id": partition_id,
+            "n_train": len(x_train),
+            "n_val": len(x_val),
+            "epochs": actual_epochs,
+            "train_loss": float(history.history['loss'][-1]),
+            "train_acc": float(history.history['accuracy'][-1]),
+            "train_auc": float(history.history['auc'][-1]),
+            "train_precision": float(history.history['precision'][-1]),
+            "train_recall": float(history.history['recall'][-1]),
+            "val_loss": float(history.history['val_loss'][-1]),
+            "val_acc": float(history.history['val_accuracy'][-1]),
+            "val_auc": float(history.history['val_auc'][-1]),
+            "val_precision": float(history.history['val_precision'][-1]),
+            "val_recall": float(history.history['val_recall'][-1])
+        }
 
-    # Calculate F1 scores
-    train_f1 = 2 * metrics['train_precision'] * metrics['train_recall'] / (
-        metrics['train_precision'] + metrics['train_recall']) if (metrics['train_precision'] + metrics['train_recall']) > 0 else 0.0
-    val_f1 = 2 * metrics['val_precision'] * metrics['val_recall'] / (
-        metrics['val_precision'] + metrics['val_recall']) if (metrics['val_precision'] + metrics['val_recall']) > 0 else 0.0
+        # Calculate F1 scores
+        train_f1 = 2 * metrics['train_precision'] * metrics['train_recall'] / (
+            metrics['train_precision'] + metrics['train_recall']) if (metrics['train_precision'] + metrics['train_recall']) > 0 else 0.0
+        val_f1 = 2 * metrics['val_precision'] * metrics['val_recall'] / (
+            metrics['val_precision'] + metrics['val_recall']) if (metrics['val_precision'] + metrics['val_recall']) > 0 else 0.0
 
-    metrics['train_f1'] = float(train_f1)
-    metrics['val_f1'] = float(val_f1)
+        metrics['train_f1'] = float(train_f1)
+        metrics['val_f1'] = float(val_f1)
 
-    # Create round record
-    round_record = {
-        'timestamp': datetime.now().isoformat(),
-        'hospital': hospital_name,
-        'partition_id': partition_id,
-        'round': round_num,
-        'epochs_run': actual_epochs,
-        'final_metrics': metrics,
-        'history': {k: [float(v) for v in vals] for k, vals in history.history.items()}
-    }
+        # Create round record
+        round_record = {
+            'timestamp': datetime.now().isoformat(),
+            'hospital': hospital_name,
+            'partition_id': partition_id,
+            'round': round_num,
+            'epochs_run': actual_epochs,
+            'final_metrics': metrics,
+            'history': {k: [float(v) for v in vals] for k, vals in history.history.items()}
+        }
 
-    # Create key with hospital and partition info
-    metric_key = create_metric_key(round_num, hospital_name, partition_id)
+        # Create key with hospital and partition info
+        metric_key = create_metric_key(round_num, hospital_name, partition_id)
 
-    # Load existing metrics and add this round
-    all_training_metrics = load_metrics_file(TRAINING_METRICS_FILE)
-    all_training_metrics[metric_key] = round_record
-    save_metrics_file(all_training_metrics, TRAINING_METRICS_FILE)
+        # Load existing metrics and add this round
+        all_training_metrics = load_metrics_file(TRAINING_METRICS_FILE)
+        all_training_metrics[metric_key] = round_record
+        save_metrics_file(all_training_metrics, TRAINING_METRICS_FILE)
 
-    # Log concise summary
-    logger.info("-"*70)
-    logger.info(
-        f"Training Complete (Round {round_num}, {actual_epochs} epochs):")
-    logger.info(f"  Train: Loss={metrics['train_loss']:.4f}, AUC={metrics['train_auc']:.4f}, "
-                f"Precision={metrics['train_precision']:.3f}, Recall={metrics['train_recall']:.3f}")
-    logger.info(f"  Val:   Loss={metrics['val_loss']:.4f}, AUC={metrics['val_auc']:.4f}, "
-                f"Precision={metrics['val_precision']:.3f}, Recall={metrics['val_recall']:.3f}")
-    logger.info("-"*70)
+        # Log concise summary
+        logger.info("-"*70)
+        logger.info(
+            f"Training Complete (Round {round_num}, {actual_epochs} epochs):")
+        logger.info(f"  Train: Loss={metrics['train_loss']:.4f}, AUC={metrics['train_auc']:.4f}, "
+                    f"Precision={metrics['train_precision']:.3f}, Recall={metrics['train_recall']:.3f}")
+        logger.info(f"  Val:   Loss={metrics['val_loss']:.4f}, AUC={metrics['val_auc']:.4f}, "
+                    f"Precision={metrics['val_precision']:.3f}, Recall={metrics['val_recall']:.3f}")
+        logger.info("-"*70)
 
-    # Return concise metrics to server
-    return_metrics = {
-        "num-examples": len(x_train),
-        "train_loss": metrics['train_loss'],
-        "train_auc": metrics['train_auc'],
-        "val_auc": metrics['val_auc']
-    }
+        # Return concise metrics to server
+        return_metrics = {
+            "num-examples": len(x_train),
+            "train_loss": metrics['train_loss'],
+            "train_auc": metrics['train_auc'],
+            "val_auc": metrics['val_auc']
+        }
 
-    return Message(
-        content=RecordDict({
-            "arrays": ArrayRecord(model.get_weights()),
-            "metrics": MetricRecord(return_metrics)
-        }),
-        reply_to=msg
-    )
+        logger.info("✅ Returning weights and metrics to server")
+        return Message(
+            content=RecordDict({
+                "arrays": ArrayRecord(model.get_weights()),
+                "metrics": MetricRecord(return_metrics)
+            }),
+            reply_to=msg
+        )
+
+    except Exception as e:
+        logger.error("="*70)
+        logger.error(f"❌ TRAINING FAILED WITH EXCEPTION")
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception message: {str(e)}")
+        logger.error("="*70)
+        import traceback
+        logger.error(traceback.format_exc())
+        raise
 
 
 @app.evaluate()
