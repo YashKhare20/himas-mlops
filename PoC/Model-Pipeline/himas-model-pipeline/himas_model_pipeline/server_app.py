@@ -107,7 +107,7 @@ def main(grid: Grid, context: Context) -> None:
         fraction_evaluate=fraction_evaluate,
         min_train_nodes=2,
         min_evaluate_nodes=2,
-        min_available_nodes=3
+        min_available_nodes=2 #changed from 3 for testing with less clients
     )
 
     # Execute federated learning
