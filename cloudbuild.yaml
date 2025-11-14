@@ -190,6 +190,64 @@ steps:
         cp -r /workspace/evaluation_results .
         python bias_detection.py
 
+  - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
+    id: 'compare-with-previous'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cd /workspace
+        
+        echo "Checking for previous model..."
+        
+        # Get current model metrics
+        NEW_ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/*.json)
+        NEW_REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/*.json)
+        
+        echo "New model - Accuracy: $$NEW_ACC, Recall: $$NEW_REC"
+        
+        # Try to get the latest previous model from GCS
+        PREV_BUILD=$$(gsutil ls gs://himas-mlops-models/evaluation-results/ | sort -r | sed -n '2p' | xargs basename)
+        
+        if [ -z "$$PREV_BUILD" ]; then
+          echo "No previous model found. This is the first model - proceeding."
+          exit 0
+        fi
+        
+        echo "Found previous build: $$PREV_BUILD"
+        
+        # Download previous model's metrics
+        mkdir -p prev_results
+        gsutil cp gs://himas-mlops-models/evaluation-results/$$PREV_BUILD/*.json prev_results/ || {
+          echo "Could not fetch previous results. Proceeding with current model."
+          exit 0
+        }
+        
+        # Get previous model metrics
+        PREV_ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' prev_results/*.json)
+        PREV_REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' prev_results/*.json)
+        
+        echo "Previous model - Accuracy: $$PREV_ACC, Recall: $$PREV_REC"
+        
+        # Compare models (new model must be better OR within 2% tolerance)
+        ACC_DIFF=$$(echo "$$NEW_ACC - $$PREV_ACC" | bc -l)
+        REC_DIFF=$$(echo "$$NEW_REC - $$PREV_REC" | bc -l)
+        
+        echo "Accuracy difference: $$ACC_DIFF"
+        echo "Recall difference: $$REC_DIFF"
+        
+        # Rollback if new model is significantly worse (>2% drop in either metric)
+        if (( $$(echo "$$ACC_DIFF < -0.02" | bc -l) )) || (( $$(echo "$$REC_DIFF < -0.02" | bc -l) )); then
+          echo "❌ ROLLBACK: New model performs worse than previous model"
+          echo "   Previous: Acc=$$PREV_ACC, Rec=$$PREV_REC"
+          echo "   New:      Acc=$$NEW_ACC, Rec=$$NEW_REC"
+          echo "   Not uploading new model."
+          exit 1
+        else
+          echo "✅ New model is better or comparable. Proceeding with upload."
+          exit 0
+        fi
+
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-model'
     args:
