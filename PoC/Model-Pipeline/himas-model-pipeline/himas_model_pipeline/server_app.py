@@ -144,7 +144,23 @@ def main(grid: Grid, context: Context) -> None:
     logger.info(f"  Full path: {model_path}")
 
     # Save model weights
-    model.set_weights(result.arrays.to_numpy_ndarrays())
+    #model.set_weights(result.arrays.to_numpy_ndarrays())
+
+    #Added to avoid issues with saving in some environments
+    # Save model weights - with safety check
+    ndarrays = result.arrays.to_numpy_ndarrays()
+    logger.info(f"Received {len(ndarrays)} weight arrays from federated training")
+    
+    if len(ndarrays) == 0:
+        raise RuntimeError(
+            "❌ Training failed - no weights returned from clients!\n"
+            "Check client logs above for errors during training."
+        )
+    
+    logger.info("✅ Valid weights received, setting model weights")
+    model.set_weights(ndarrays)
+
+
     model.save(str(model_path))
 
     # Save model metadata
