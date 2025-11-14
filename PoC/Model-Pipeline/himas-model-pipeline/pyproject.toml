@@ -34,7 +34,7 @@ serverapp = "himas_model_pipeline.server_app:app"
 clientapp = "himas_model_pipeline.client_app:app"
 
 [tool.flwr.app.config]
-num-server-rounds = 15
+num-server-rounds = 1 #changed from 15
 local-epochs = 5
 batch-size = 64
 fraction-train = 1.0
