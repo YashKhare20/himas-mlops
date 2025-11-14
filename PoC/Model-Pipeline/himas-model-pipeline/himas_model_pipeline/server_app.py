@@ -1,216 +1,171 @@
-# """himas-model-pipeline: A Flower / TensorFlow ServerApp for federated ICU mortality prediction."""
+"""
+HIMAS ServerApp - Federated Server for ICU Mortality Prediction
+================================================================
 
-# from flwr.app import ArrayRecord, Context
-# from flwr.serverapp import Grid, ServerApp
-# from flwr.serverapp.strategy import FedAvg
-# from himas_model_pipeline.task import load_model
-# from pathlib import Path
+Coordinates federated learning across three hospitals:
+- Initializes global model with shared hyperparameters
+- Orchestrates training rounds using FedAvg strategy
+- Aggregates model weights from hospital clients
+- Saves final model with hyperparameter-specific naming
+"""
 
-# # --- MLflow (minimal additions) ---
-# import os
-# import mlflow
-# import mlflow.keras
-
-
-# # Configure MLflow from env or local defaults
-# _MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "file:./mlruns")
-# _MLFLOW_EXP = os.getenv("MLFLOW_EXPERIMENT_NAME", "himas-federated")
-# mlflow.set_tracking_uri(_MLFLOW_URI)
-# mlflow.set_experiment(_MLFLOW_EXP)
-
-# # Create ServerApp
-# app = ServerApp()
-
-
-# @app.main()
-# def main(grid: Grid, context: Context) -> None:
-#     """
-#     Main entry point for the ServerApp.
-
-#     Coordinates federated learning across 3 hospitals for ICU mortality prediction.
-#     """
-#     # Start a top-level MLflow run for the full FL session
-#     with mlflow.start_run(run_name="server-session"):
-#         # Read run config
-#         num_rounds: int = context.run_config["num-server-rounds"]
-#         fraction_train: float = context.run_config.get("fraction-train", 1.0)
-#         fraction_evaluate: float = context.run_config.get("fraction-evaluate", 1.0)
-
-#         print("\n" + "="*60)
-#         print("HIMAS Federated Learning - ICU Mortality Prediction")
-#         print("="*60)
-#         print(f"Number of federated rounds: {num_rounds}")
-#         print(f"Fraction of clients for training: {fraction_train}")
-#         print(f"Fraction of clients for evaluation: {fraction_evaluate}")
-#         print("="*60 + "\n")
-
-#         # Log run-level parameters
-#         mlflow.set_tags({"role": "server", "phase": "federated-session"})
-#         mlflow.log_params({
-#             "num_server_rounds": num_rounds,
-#             "fraction_train": fraction_train,
-#             "fraction_evaluate": fraction_evaluate,
-#         })
-
-#         # Initialize global model with proper input dimension
-#         input_dim = 23  # 15 numerical + 8 categorical features (approximate)
-#         model = load_model(input_dim)
-#         arrays = ArrayRecord(model.get_weights())
-
-#         # Enable Keras autologging (logs training/eval metrics from clients if emitted)
-#         mlflow.keras.autolog(log_models=False)
-
-#         # Initialize FedAvg strategy with healthcare-specific configuration
-#         strategy = FedAvg(
-#             fraction_train=fraction_train,
-#             fraction_evaluate=fraction_evaluate,
-#             min_train_nodes=2,    # Minimum 2 hospitals for training
-#             min_evaluate_nodes=2, # Minimum 2 hospitals for evaluation
-#             min_available_nodes=3,# All 3 hospitals should be available
-#         )
-
-#         # Start federated learning
-#         print("Starting federated learning across hospitals...")
-#         result = strategy.start(
-#             grid=grid,
-#             initial_arrays=arrays,
-#             num_rounds=num_rounds,
-#         )
-
-#         # Save final model
-#         print("\n" + "="*60)
-#         print("Federated learning completed!")
-#         print("="*60)
-
-#         output_dir = Path("models")
-#         output_dir.mkdir(exist_ok=True)
-#         model_path = output_dir / "himas_federated_mortality_model.keras"
-
-#         print(f"\nSaving final model to: {model_path}")
-#         ndarrays = result.arrays.to_numpy_ndarrays()
-#         model.set_weights(ndarrays)
-#         model.save(str(model_path))
-
-#         # Track artifacts/model in MLflow (kept simple)
-#         mlflow.log_artifact(str(model_path), artifact_path="final_model_artifacts")
-#         # Also log as an MLflow model (optional, convenient for loading)
-#         mlflow.keras.log_model(model, artifact_path="final_model")
-
-#         print("\nModel saved successfully")
-#         print("="*60 + "\n")
-"""himas-model-pipeline: A Flower / TensorFlow ServerApp for federated ICU mortality prediction."""
-
+import logging
+import json
+from datetime import datetime
+from pathlib import Path
 from flwr.app import ArrayRecord, Context
 from flwr.serverapp import Grid, ServerApp
 from flwr.serverapp.strategy import FedAvg
-from himas_model_pipeline.task import load_model
-from pathlib import Path
+from himas_model_pipeline.task import (
+    load_model, get_shared_hyperparameters,
+    get_config_value, set_seed, load_hyperparameters
+)
 
-# --- MLflow (minimal additions) ---
-import os
-import mlflow
-import mlflow.keras
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-
-# Configure MLflow from env or local defaults
-_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "file:./mlruns")
-_MLFLOW_EXP = os.getenv("MLFLOW_EXPERIMENT_NAME", "himas-federated")
-mlflow.set_tracking_uri(_MLFLOW_URI)
-mlflow.set_experiment(_MLFLOW_EXP)
-
-# Create ServerApp
+# Initialize Flower ServerApp
 app = ServerApp()
 
 
 @app.main()
 def main(grid: Grid, context: Context) -> None:
     """
-    Main entry point for the ServerApp.
+    Main entry point for federated learning server.
 
-    Coordinates federated learning across 3 hospitals for ICU mortality prediction.
+    Orchestrates the complete federated learning workflow:
+    1. Load configuration and hyperparameters
+    2. Initialize global model
+    3. Execute federated training rounds
+    4. Save final aggregated model
+
+    Args:
+        grid: Flower Grid for client communication
+        context: Flower Context with runtime configuration
     """
-    # Start a top-level MLflow run for the full FL session
-    with mlflow.start_run(run_name="server-session"):
-        # Read run config
-        num_rounds: int = context.run_config["num-server-rounds"]
-        fraction_train: float = context.run_config.get("fraction-train", 1.0)
-        fraction_evaluate: float = context.run_config.get("fraction-evaluate", 1.0)
+    logger.info("="*70)
+    logger.info("HIMAS FEDERATED LEARNING - ICU MORTALITY PREDICTION")
+    logger.info("="*70)
 
-        print("\n" + "="*60)
-        print("HIMAS Federated Learning - ICU Mortality Prediction")
-        print("="*60)
-        print(f"Number of federated rounds: {num_rounds}")
-        print(f"Fraction of clients for training: {fraction_train}")
-        print(f"Fraction of clients for evaluation: {fraction_evaluate}")
-        print("="*60 + "\n")
+    # Configure reproducibility
+    seed = context.run_config.get(
+        "random-seed", get_config_value('tool.flwr.app.config.random-seed', 42))
+    set_seed(seed)
+    logger.info(f"Random seed: {seed}")
 
-        # Log run-level parameters
-        mlflow.set_tags({"role": "server", "phase": "federated-session"})
-        mlflow.log_params({
-            "num_server_rounds": num_rounds,
-            "fraction_train": fraction_train,
-            "fraction_evaluate": fraction_evaluate,
-        })
+    # Load runtime configuration
+    project_id = get_config_value('tool.himas.data.project-id')
+    dataset_id = get_config_value('tool.himas.data.dataset-id')
+    num_rounds = context.run_config.get("num-server-rounds", 15)
+    fraction_train = context.run_config.get("fraction-train", 1.0)
+    fraction_evaluate = context.run_config.get("fraction-evaluate", 1.0)
 
-        # Initialize global model with proper input dimension
-        input_dim = 23
-        model = load_model(input_dim)
-        arrays = ArrayRecord(model.get_weights())
+    logger.info(f"Configuration:")
+    logger.info(f"  Project: {project_id}")
+    logger.info(f"  Dataset: {dataset_id}")
+    logger.info(f"  Federated rounds: {num_rounds}")
+    logger.info(f"  Train fraction: {fraction_train}")
+    logger.info(f"  Evaluate fraction: {fraction_evaluate}")
 
-        # Enable Keras autologging (logs training/eval metrics from clients if emitted)
-        mlflow.keras.autolog(log_models=False)
+    # Get feature dimensions
+    num_features = get_config_value('tool.himas.data.numerical-features', [])
+    cat_features = get_config_value('tool.himas.data.categorical-features', [])
+    input_dim = len(num_features) + len(cat_features)
+    logger.info(
+        f"  Input dimension: {input_dim} ({len(num_features)} numerical + {len(cat_features)} categorical)")
 
-        # Initialize FedAvg strategy with healthcare-specific configuration
-        strategy = FedAvg(
-            fraction_train=fraction_train,
-            fraction_evaluate=fraction_evaluate,
-            min_train_nodes=2,    # Minimum 2 hospitals for training
-            min_evaluate_nodes=2, # Minimum 2 hospitals for evaluation
-            min_available_nodes=3,# All 3 hospitals should be available
-        )
+    # Load shared hyperparameters
+    hyperparameters = get_shared_hyperparameters(context)
+    hp_path = get_config_value('tool.flwr.app.config.shared-hyperparameters')
 
-        # Start federated learning
-        print("Starting federated learning across hospitals...")
-        result = strategy.start(
-            grid=grid,
-            initial_arrays=arrays,
-            num_rounds=num_rounds,
-        )
+    # Extract hospital identifier from hyperparameters path for organized model saving
+    if hp_path:
+        # e.g., 'hospital_a_best_hyperparameters'
+        hp_filename = Path(hp_path).stem
+        # Extract hospital name (e.g., 'hospital_a')
+        hosp_identifier = hp_filename.split(
+            '_best_')[0] if '_best_' in hp_filename else 'default'
+    else:
+        hosp_identifier = 'default'
 
-        # Save final model
-        # Save final model
-        print("\n" + "="*60)
-        print("Federated learning completed!")
-        print("="*60)
+    logger.info("Building global model")
+    model = load_model(input_dim, hyperparameters, seed)
 
-        # Check if we have valid weights
-        ndarrays = result.arrays.to_numpy_ndarrays()
-        print(f"\nReceived {len(ndarrays)} weight arrays from federated training")
+    # Log model statistics
+    total_params = model.count_params()
+    logger.info(f"Model parameters: {total_params:,}")
 
-        if len(ndarrays) == 0:
-            raise RuntimeError("Training failed - no weights returned from clients")
+    # Initialize FedAvg strategy
+    logger.info("-"*70)
+    logger.info("Initializing FedAvg strategy")
+    strategy = FedAvg(
+        fraction_train=fraction_train,
+        fraction_evaluate=fraction_evaluate,
+        min_train_nodes=2,
+        min_evaluate_nodes=2,
+        min_available_nodes=3
+    )
 
-        output_dir = Path("models")
-        output_dir.mkdir(exist_ok=True)
-        model_path = output_dir / "himas_federated_mortality_model.keras"
+    # Execute federated learning
+    logger.info("="*70)
+    logger.info(
+        f"Starting federated learning across 3 hospitals for {num_rounds} rounds")
+    logger.info("="*70)
 
-        print(f"\nSaving final model to: {model_path.absolute()}")
+    result = strategy.start(
+        grid=grid,
+        initial_arrays=ArrayRecord(model.get_weights()),
+        num_rounds=num_rounds
+    )
 
-        try:
-            model.set_weights(ndarrays)
-            print(f"✅ Weights set successfully ({len(ndarrays)} arrays)")
-            
-            model.save(str(model_path))
-            print(f"✅ Model saved to: {model_path.absolute()}")
-            
-            # Verify file exists
-            if model_path.exists():
-                print(f"✅ Verified: Model file exists ({model_path.stat().st_size} bytes)")
-            else:
-                raise FileNotFoundError(f"Model save reported success but file doesn't exist!")
-                
-        except Exception as e:
-            print(f"❌ Error during model save: {e}")
-            print(f"   Working directory: {Path.cwd().absolute()}")
-            print(f"   Attempted save path: {model_path.absolute()}")
-            raise
+    # Save final model with organized directory structure
+    logger.info("="*70)
+    logger.info("FEDERATED LEARNING COMPLETED")
+    logger.info("="*70)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Create directory structure: models/hyper-{hospital}/
+    models_base_dir = Path(get_config_value(
+        'tool.himas.paths.models-dir', 'models'))
+    models_save_dir = models_base_dir / f"hyper-{hosp_identifier}"
+    models_save_dir.mkdir(parents=True, exist_ok=True)
+
+    model_filename = f"himas_federated_mortality_model_{timestamp}.keras"
+    model_path = models_save_dir / model_filename
+
+    logger.info(f"Saving final model:")
+    logger.info(f"  Directory: {models_save_dir}")
+    logger.info(f"  Filename: {model_filename}")
+    logger.info(f"  Full path: {model_path}")
+
+    # Save model weights
+    model.set_weights(result.arrays.to_numpy_ndarrays())
+    model.save(str(model_path))
+
+    # Save model metadata
+    metadata = {
+        'timestamp': timestamp,
+        'hyperparameters_source': hosp_identifier,
+        'hyperparameters_path': hp_path,
+        'hyperparameters': hyperparameters,
+        'model_path': str(model_path),
+        'num_rounds': num_rounds,
+        'total_parameters': total_params,
+        'random_seed': seed,
+        'project_id': project_id,
+        'dataset_id': dataset_id
+    }
+
+    metadata_path = models_save_dir / f"model_metadata_{timestamp}.json"
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=2)
+
+    logger.info(f"Model metadata saved to {metadata_path}")
+    logger.info("="*70)
+    logger.info("SERVER TASK COMPLETED SUCCESSFULLY")
+    logger.info("="*70)
