@@ -129,23 +129,31 @@ steps:
 
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'train-model'
+    env:
+      - 'GCP_PROJECT_ID=$PROJECT_ID'
+      - 'DATASET_ID=federated_demo'
+    entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # ... training code ...
+        cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/* /app/
+        cd /app
+        echo "Starting training with federated_demo..."
         flwr run .
         mkdir -p /workspace/models
         
-        # UPDATED: Find the model file wherever it was saved
+        # Find the model file wherever it was saved
         MODEL_FILE=$$(find models -name "*.keras" -type f | head -1)
         
         if [ -z "$$MODEL_FILE" ]; then
           echo "❌ No model file found!"
+          ls -lR models/
           exit 1
         fi
         
-        echo "Found model: $$MODEL_FILE"
+        echo "✅ Found model: $$MODEL_FILE"
         cp $$MODEL_FILE /workspace/models/himas_federated_mortality_model.keras
+        echo "✅ Model copied to workspace:"
         ls -lh /workspace/models/
 
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
