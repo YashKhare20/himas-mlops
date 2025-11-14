@@ -1,0 +1,10 @@
+{
+  "num_layers": 3,
+  "architecture": "decreasing",
+  "first_layer_units": 320,
+  "activation": "selu",
+  "dropout_rate": 0.2,
+  "l2_strength": 0.00017879831499230929,
+  "learning_rate": 0.004824014039833979,
+  "optimizer": "adamw"
+}

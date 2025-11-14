@@ -1,0 +1,767 @@
+{
+  "round_2_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:22:28.952686",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 2,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.45567792654037476,
+      "eval_acc": 0.8850609064102173,
+      "eval_auc": 0.8784189820289612,
+      "eval_precision": 0.0,
+      "eval_recall": 0.0,
+      "eval_f1": 0.0
+    }
+  },
+  "round_2_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:22:33.083183",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 2,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.4547424018383026,
+      "eval_acc": 0.8875883221626282,
+      "eval_auc": 0.8938080072402954,
+      "eval_precision": 0.0,
+      "eval_recall": 0.0,
+      "eval_f1": 0.0
+    }
+  },
+  "round_2_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:22:33.199059",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 2,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.45100027322769165,
+      "eval_acc": 0.8916435241699219,
+      "eval_auc": 0.8885638117790222,
+      "eval_precision": 1.0,
+      "eval_recall": 0.0058823530562222,
+      "eval_f1": 0.011695906660156739
+    }
+  },
+  "round_3_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:23:07.559095",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 3,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.3505396544933319,
+      "eval_acc": 0.879417896270752,
+      "eval_auc": 0.9122275114059448,
+      "eval_precision": 0.48531684279441833,
+      "eval_recall": 0.8113695383071899,
+      "eval_f1": 0.6073501016279347
+    }
+  },
+  "round_3_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:23:09.788619",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 3,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.34801536798477173,
+      "eval_acc": 0.875400722026825,
+      "eval_auc": 0.9172439575195312,
+      "eval_precision": 0.4611288607120514,
+      "eval_recall": 0.8490195870399475,
+      "eval_f1": 0.5976535492076647
+    }
+  },
+  "round_3_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:23:10.822207",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 3,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.3419686257839203,
+      "eval_acc": 0.8839555978775024,
+      "eval_auc": 0.9187942743301392,
+      "eval_precision": 0.4904255270957947,
+      "eval_recall": 0.8276481032371521,
+      "eval_f1": 0.6158984565640454
+    }
+  },
+  "round_4_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:23:54.617175",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 4,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.4650448262691498,
+      "eval_acc": 0.8167508244514465,
+      "eval_auc": 0.9112442135810852,
+      "eval_precision": 0.37107622623443604,
+      "eval_recall": 0.8552971482276917,
+      "eval_f1": 0.5175918601667393
+    }
+  },
+  "round_4_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:23:57.647435",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 4,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.46194303035736084,
+      "eval_acc": 0.8185509443283081,
+      "eval_auc": 0.9200210571289062,
+      "eval_precision": 0.3642914295196533,
+      "eval_recall": 0.8921568393707275,
+      "eval_f1": 0.5173393897977557
+    }
+  },
+  "round_4_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:23:59.287637",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 4,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.4506717622280121,
+      "eval_acc": 0.8236125111579895,
+      "eval_auc": 0.9200118184089661,
+      "eval_precision": 0.37722694873809814,
+      "eval_recall": 0.874326765537262,
+      "eval_f1": 0.5270562728578292
+    }
+  },
+  "round_5_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:24:38.374301",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 5,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.42293819785118103,
+      "eval_acc": 0.8414018154144287,
+      "eval_auc": 0.9130109548568726,
+      "eval_precision": 0.4082396924495697,
+      "eval_recall": 0.8449612259864807,
+      "eval_f1": 0.550505040259647
+    }
+  },
+  "round_5_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:24:41.722682",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 5,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.4135567247867584,
+      "eval_acc": 0.8474032878875732,
+      "eval_auc": 0.9248632788658142,
+      "eval_precision": 0.40760868787765503,
+      "eval_recall": 0.8823529481887817,
+      "eval_f1": 0.55762081196915
+    }
+  },
+  "round_5_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:24:42.859343",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 5,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.39920440316200256,
+      "eval_acc": 0.8510595560073853,
+      "eval_auc": 0.9238537549972534,
+      "eval_precision": 0.420822411775589,
+      "eval_recall": 0.8635547757148743,
+      "eval_f1": 0.5658823700017789
+    }
+  },
+  "round_6_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:25:21.144843",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 6,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.3343004882335663,
+      "eval_acc": 0.8874368667602539,
+      "eval_auc": 0.9175459146499634,
+      "eval_precision": 0.5065146684646606,
+      "eval_recall": 0.8036175966262817,
+      "eval_f1": 0.6213786369107911
+    }
+  },
+  "round_6_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:25:24.990776",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 6,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.32823896408081055,
+      "eval_acc": 0.8852319121360779,
+      "eval_auc": 0.9283130764961243,
+      "eval_precision": 0.48494982719421387,
+      "eval_recall": 0.8529411554336548,
+      "eval_f1": 0.6183368769283876
+    }
+  },
+  "round_6_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:25:27.576342",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 6,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.31577929854393005,
+      "eval_acc": 0.8932391405105591,
+      "eval_auc": 0.9276517629623413,
+      "eval_precision": 0.5154867172241211,
+      "eval_recall": 0.836624801158905,
+      "eval_f1": 0.6379192343741533
+    }
+  },
+  "round_7_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:26:07.180768",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 7,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.33696749806404114,
+      "eval_acc": 0.8785268664360046,
+      "eval_auc": 0.9162700176239014,
+      "eval_precision": 0.48307693004608154,
+      "eval_recall": 0.8113695383071899,
+      "eval_f1": 0.6055930705222095
+    }
+  },
+  "round_7_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:26:09.929915",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 7,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.3318454623222351,
+      "eval_acc": 0.8758281469345093,
+      "eval_auc": 0.9261766672134399,
+      "eval_precision": 0.4622741639614105,
+      "eval_recall": 0.8529411554336548,
+      "eval_f1": 0.5995864764071143
+    }
+  },
+  "round_7_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:26:12.585504",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 7,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.3219106197357178,
+      "eval_acc": 0.8815338015556335,
+      "eval_auc": 0.9261746406555176,
+      "eval_precision": 0.4844074845314026,
+      "eval_recall": 0.836624801158905,
+      "eval_f1": 0.6135615606308924
+    }
+  },
+  "round_8_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:26:51.555487",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 8,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.35362017154693604,
+      "eval_acc": 0.8785268664360046,
+      "eval_auc": 0.9192709922790527,
+      "eval_precision": 0.48323169350624084,
+      "eval_recall": 0.8191214203834534,
+      "eval_f1": 0.6078619184576372
+    }
+  },
+  "round_8_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:26:55.466039",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 8,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.34585729241371155,
+      "eval_acc": 0.8760418891906738,
+      "eval_auc": 0.9287747144699097,
+      "eval_precision": 0.46308016777038574,
+      "eval_recall": 0.8607842922210693,
+      "eval_f1": 0.6021947812669862
+    }
+  },
+  "round_8_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:26:56.926449",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 8,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.33363601565361023,
+      "eval_acc": 0.8811301589012146,
+      "eval_auc": 0.9269079566001892,
+      "eval_precision": 0.4836065471172333,
+      "eval_recall": 0.8473967909812927,
+      "eval_f1": 0.6157860380878344
+    }
+  },
+  "round_9_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:27:35.446277",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 9,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.4066751301288605,
+      "eval_acc": 0.8589248657226562,
+      "eval_auc": 0.9171531200408936,
+      "eval_precision": 0.44037941098213196,
+      "eval_recall": 0.8397932648658752,
+      "eval_f1": 0.5777777799911498
+    }
+  },
+  "round_9_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:27:39.918255",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 9,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.3994298577308655,
+      "eval_acc": 0.8595854043960571,
+      "eval_auc": 0.929537832736969,
+      "eval_precision": 0.42966505885124207,
+      "eval_recall": 0.8803921341896057,
+      "eval_f1": 0.5774919448680176
+    }
+  },
+  "round_9_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:27:39.926358",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 9,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.3852955400943756,
+      "eval_acc": 0.8617557883262634,
+      "eval_auc": 0.92703777551651,
+      "eval_precision": 0.44085028767585754,
+      "eval_recall": 0.8563734292984009,
+      "eval_f1": 0.5820622421932674
+    }
+  },
+  "round_10_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:28:16.412042",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 10,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.33515071868896484,
+      "eval_acc": 0.893376886844635,
+      "eval_auc": 0.9188421964645386,
+      "eval_precision": 0.5234113931655884,
+      "eval_recall": 0.8087855577468872,
+      "eval_f1": 0.635533019742391
+    }
+  },
+  "round_10_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:28:20.414864",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 10,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.3289619982242584,
+      "eval_acc": 0.8858730792999268,
+      "eval_auc": 0.930878221988678,
+      "eval_precision": 0.48642534017562866,
+      "eval_recall": 0.843137264251709,
+      "eval_f1": 0.6169297018624146
+    }
+  },
+  "round_10_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:28:22.227717",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 10,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.3111310601234436,
+      "eval_acc": 0.8992936611175537,
+      "eval_auc": 0.9286989569664001,
+      "eval_precision": 0.5333333611488342,
+      "eval_recall": 0.833034098148346,
+      "eval_f1": 0.6503153635487959
+    }
+  },
+  "round_11_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:29:02.297477",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 11,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.32283976674079895,
+      "eval_acc": 0.8826848864555359,
+      "eval_auc": 0.9190728664398193,
+      "eval_precision": 0.4936908483505249,
+      "eval_recall": 0.8087855577468872,
+      "eval_f1": 0.6131243932995287
+    }
+  },
+  "round_11_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:29:06.201016",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 11,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.3129255175590515,
+      "eval_acc": 0.8824535012245178,
+      "eval_auc": 0.9305556416511536,
+      "eval_precision": 0.4780219793319702,
+      "eval_recall": 0.8529411554336548,
+      "eval_f1": 0.6126760519868062
+    }
+  },
+  "round_11_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:29:06.934651",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 11,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.29909056425094604,
+      "eval_acc": 0.8875883221626282,
+      "eval_auc": 0.9286110401153564,
+      "eval_precision": 0.5,
+      "eval_recall": 0.8348294496536255,
+      "eval_f1": 0.6254203110893719
+    }
+  },
+  "round_12_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:29:46.998685",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 12,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.3681439161300659,
+      "eval_acc": 0.8725868463516235,
+      "eval_auc": 0.9211326837539673,
+      "eval_precision": 0.4691176414489746,
+      "eval_recall": 0.8242893815040588,
+      "eval_f1": 0.5979381334110162
+    }
+  },
+  "round_12_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:29:50.373904",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 12,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.3626707196235657,
+      "eval_acc": 0.8739047050476074,
+      "eval_auc": 0.9323481917381287,
+      "eval_precision": 0.4586776793003082,
+      "eval_recall": 0.8705882430076599,
+      "eval_f1": 0.6008119041155571
+    }
+  },
+  "round_12_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:29:51.682650",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 12,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.3442380428314209,
+      "eval_acc": 0.8809283375740051,
+      "eval_auc": 0.9299708604812622,
+      "eval_precision": 0.4832146465778351,
+      "eval_recall": 0.8527827858924866,
+      "eval_f1": 0.6168831203975439
+    }
+  },
+  "round_13_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:30:29.841963",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 13,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.33167001605033875,
+      "eval_acc": 0.8859518766403198,
+      "eval_auc": 0.9202868938446045,
+      "eval_precision": 0.5023923516273499,
+      "eval_recall": 0.8139534592628479,
+      "eval_f1": 0.6213017721198015
+    }
+  },
+  "round_13_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:30:35.303876",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 13,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.3270030617713928,
+      "eval_acc": 0.8828809857368469,
+      "eval_auc": 0.9309821724891663,
+      "eval_precision": 0.47893568873405457,
+      "eval_recall": 0.8470588326454163,
+      "eval_f1": 0.6118980114476626
+    }
+  },
+  "round_13_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:30:35.637537",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 13,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.30910447239875793,
+      "eval_acc": 0.8930373191833496,
+      "eval_auc": 0.9311193227767944,
+      "eval_precision": 0.5148515105247498,
+      "eval_recall": 0.8402154445648193,
+      "eval_f1": 0.6384720536142477
+    }
+  },
+  "round_14_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:31:15.472058",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 14,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.3010796904563904,
+      "eval_acc": 0.9031779170036316,
+      "eval_auc": 0.9234856367111206,
+      "eval_precision": 0.5553538799285889,
+      "eval_recall": 0.7906976938247681,
+      "eval_f1": 0.6524520169635547
+    }
+  },
+  "round_14_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:31:19.359146",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 14,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.29303354024887085,
+      "eval_acc": 0.8976277112960815,
+      "eval_auc": 0.9330983757972717,
+      "eval_precision": 0.5192546844482422,
+      "eval_recall": 0.8196078538894653,
+      "eval_f1": 0.6357414676357581
+    }
+  },
+  "round_14_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:31:20.351373",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 14,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.2809544503688812,
+      "eval_acc": 0.9083753824234009,
+      "eval_auc": 0.9319086074829102,
+      "eval_precision": 0.5652725100517273,
+      "eval_recall": 0.8007181286811829,
+      "eval_f1": 0.6627043167197503
+    }
+  },
+  "round_15_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:31:58.183919",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 15,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.34899887442588806,
+      "eval_acc": 0.8877338767051697,
+      "eval_auc": 0.919458270072937,
+      "eval_precision": 0.5072463750839233,
+      "eval_recall": 0.8139534592628479,
+      "eval_f1": 0.6249999901070733
+    }
+  },
+  "round_15_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:32:01.812805",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 15,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.3417297303676605,
+      "eval_acc": 0.8828809857368469,
+      "eval_auc": 0.9304490685462952,
+      "eval_precision": 0.47902870178222656,
+      "eval_recall": 0.8509804010391235,
+      "eval_f1": 0.6129943560343369
+    }
+  },
+  "round_15_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:32:04.008388",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 15,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.3258220851421356,
+      "eval_acc": 0.8912209868431091,
+      "eval_auc": 0.9319616556167603,
+      "eval_precision": 0.5098253488540649,
+      "eval_recall": 0.8384200930595398,
+      "eval_f1": 0.6340801209365086
+    }
+  },
+  "round_16_hospital_c_partition_2": {
+    "timestamp": "2025-11-13T21:32:39.423740",
+    "hospital": "hospital_c",
+    "partition_id": 2,
+    "round": 16,
+    "metrics": {
+      "hospital": "hospital_c",
+      "partition_id": 2,
+      "n_samples": 3367,
+      "eval_loss": 0.416300505399704,
+      "eval_acc": 0.8517968654632568,
+      "eval_auc": 0.9215892553329468,
+      "eval_precision": 0.4268929362297058,
+      "eval_recall": 0.8449612259864807,
+      "eval_f1": 0.5672159426409276
+    }
+  },
+  "round_16_hospital_b_partition_1": {
+    "timestamp": "2025-11-13T21:32:45.212372",
+    "hospital": "hospital_b",
+    "partition_id": 1,
+    "round": 16,
+    "metrics": {
+      "hospital": "hospital_b",
+      "partition_id": 1,
+      "n_samples": 4679,
+      "eval_loss": 0.41000789403915405,
+      "eval_acc": 0.8540286421775818,
+      "eval_auc": 0.9305047392845154,
+      "eval_precision": 0.4196843206882477,
+      "eval_recall": 0.886274516582489,
+      "eval_f1": 0.5696282422079393
+    }
+  },
+  "round_16_hospital_a_partition_0": {
+    "timestamp": "2025-11-13T21:32:46.424673",
+    "hospital": "hospital_a",
+    "partition_id": 0,
+    "round": 16,
+    "metrics": {
+      "hospital": "hospital_a",
+      "partition_id": 0,
+      "n_samples": 4955,
+      "eval_loss": 0.39097699522972107,
+      "eval_acc": 0.8587285280227661,
+      "eval_auc": 0.9300804138183594,
+      "eval_precision": 0.43575921654701233,
+      "eval_recall": 0.8707360625267029,
+      "eval_f1": 0.5808383244903529
+    }
+  }
+}
