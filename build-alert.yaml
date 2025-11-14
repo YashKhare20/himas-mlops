@@ -1,3 +1,4 @@
+#Notifications
 displayName: "HIMAS Pipeline Alerts"
 documentation:
   content: "Alert for Cloud Build pipeline status (success/failure/timeout)"
