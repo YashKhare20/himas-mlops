@@ -58,6 +58,15 @@ use-validation-data = true
 # Use the best performing hyperparameters from Colab tuning across all hospitals
 shared-hyperparameters = "hyperparameters/hospital_c_best_hyperparameters.json"
 
+# Differential Privacy configuration
+# Note: Lower noise_multiplier (0.5-1.5) provides better utility while maintaining privacy
+# Higher values (30.0) completely destroy model performance
+# Clipping norm of 2.0-5.0 is more appropriate for neural network weights
+# enable-differential-privacy = true
+# dp-noise-multiplier = 1.2
+# dp-clipping-norm = 5.0
+# dp-num-sampled-clients = 3
+
 [tool.himas.data]
 # BigQuery configuration
 project-id = "erudite-carving-472018-r5"
