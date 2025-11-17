@@ -180,8 +180,10 @@ steps:
       - '-c'
       - |
         cd /workspace
-        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/results/*.json)
-        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/results/*.json)
+        LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
+        echo "Using metrics from: $$LATEST_JSON"
+        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
+        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
         echo "Accuracy: $$ACC | Recall: $$REC"
         if (( $$(echo "$$ACC < 0.85" | bc -l) )); then
           exit 1
@@ -212,10 +214,13 @@ steps:
         
         echo "Checking for previous model..."
         
-        # Get current model metrics
-        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/results/*.json)
-        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/results/*.json)
-        
+        LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
+
+        echo "Using metrics from: $$LATEST_JSON"
+
+        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
+        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
+
         echo "New model - Accuracy: $$NEW_ACC, Recall: $$NEW_REC"
         
         # Try to get the latest previous model from GCS
@@ -284,9 +289,13 @@ steps:
       - |
         # Extract metrics from evaluation results
         cd /workspace
-        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/results/*.json)
-        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/results/*.json)
-        PREC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .precision' evaluation_results/results/*.json)
+
+        LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
+        echo "Using metrics from: $$LATEST_JSON"
+
+        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
+        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
+        PREC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .precision' $$LATEST_JSON)
         
         echo "Registering model in Vertex AI Model Registry..."
         echo "Accuracy: $$ACC | Recall: $$REC | Precision: $$PREC"
