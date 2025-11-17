@@ -183,8 +183,8 @@ steps:
         cd /workspace
         LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
         echo "Using metrics from: $$LATEST_JSON"
-        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
-        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
+        ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
+        REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
         echo "Accuracy: $$ACC | Recall: $$REC"
         if (( $$(echo "$$ACC < 0.85" | bc -l) )); then
           exit 1
@@ -219,8 +219,8 @@ steps:
 
         echo "Using metrics from: $$LATEST_JSON"
 
-        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
-        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
+        NEW_ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
+        NEW_REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
 
         echo "New model - Accuracy: $$NEW_ACC, Recall: $$NEW_REC"
         
@@ -240,10 +240,10 @@ steps:
           echo "Could not fetch previous results. Proceeding with current model."
           exit 0
         }
-        
+        PREV_LATEST=$$(ls -t prev_results/*.json | head -1)
         # Get previous model metrics
-        PREV_ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/results/*.json)
-        PREV_REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/results/*.json)
+        PREV_ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$PREV_LATEST)
+        PREV_REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$PREV_LATEST)
         
         echo "Previous model - Accuracy: $$PREV_ACC, Recall: $$PREV_REC"
         
@@ -294,9 +294,9 @@ steps:
         LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
         echo "Using metrics from: $$LATEST_JSON"
 
-        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
-        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
-        PREC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .precision' $$LATEST_JSON)
+        ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
+        REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
+        PREC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .precision' $$LATEST_JSON)
         
         echo "Registering model in Vertex AI Model Registry..."
         echo "Accuracy: $$ACC | Recall: $$REC | Precision: $$PREC"
