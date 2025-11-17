@@ -267,18 +267,18 @@ steps:
         fi
 
   - name: 'gcr.io/cloud-builders/gsutil'
-  id: 'upload-model'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - |
-      TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
-      echo "Uploading model with timestamp: $$TIMESTAMP"
-      gsutil cp /workspace/models/himas_federated_mortality_model.keras \
-        gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/model.keras
-      
-      # Store timestamp for next step
-      echo "$$TIMESTAMP" > /workspace/model_timestamp.txt
+    id: 'upload-model'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+        echo "Uploading model with timestamp: $$TIMESTAMP"
+        gsutil cp /workspace/models/himas_federated_mortality_model.keras \
+          gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/model.keras
+        
+        # Store timestamp for next step
+        echo "$$TIMESTAMP" > /workspace/model_timestamp.txt
       
 
   - name: 'gcr.io/cloud-builders/gsutil'
