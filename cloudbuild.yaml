@@ -170,7 +170,7 @@ steps:
         mkdir -p models
         cp /workspace/models/himas_federated_mortality_model.keras models/
         mkdir -p evaluation_results
-        python PoC/Model-Pipeline/himas-model-pipeline/scripts/evaluate_model.py
+        python scripts/evaluate_model.py
         cp -r evaluation_results /workspace/
 
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
