@@ -180,8 +180,8 @@ steps:
       - '-c'
       - |
         cd /workspace
-        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/*.json)
-        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/*.json)
+        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/results/*.json)
+        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/results/*.json)
         echo "Accuracy: $$ACC | Recall: $$REC"
         if (( $$(echo "$$ACC < 0.85" | bc -l) )); then
           exit 1
