@@ -12,7 +12,7 @@ services:
     volumes:
       - ./mlruns:/mlruns
     ports:
-      - "5000:5000"
+      - "5001:5000"
 
   # -------------------------
   # Flower SuperLink (router + ServerApp subprocess)
@@ -39,7 +39,7 @@ services:
       # - "9093:9093"
     volumes:
       # Mount host gcloud ADC into the default path inside the container
-      - C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro
+      - /Users/mgmanjusha/.config/gcloud
 
   # -------------------------
   # Federated Clients (Hospitals A/B/C)
@@ -67,7 +67,7 @@ services:
         --superlink superlink:9092
         --node-config "partition-id=0 num-partitions=3"
     volumes:
-      - C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro
+      - /Users/mgmanjusha/.config/gcloud
 
   supernode-b:
     build: .
@@ -92,7 +92,8 @@ services:
         --superlink superlink:9092
         --node-config "partition-id=1 num-partitions=3"
     volumes:
-      - C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro
+      - /Users/mgmanjusha/.config/gcloud
+
 
   supernode-c:
     build: .
@@ -117,7 +118,7 @@ services:
         --superlink superlink:9092
         --node-config "partition-id=2 num-partitions=3"
     volumes:
-      - C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro
+      - /Users/mgmanjusha/.config/gcloud
 
   # -------------------------
   # Evaluator (Post-training eval using MLflow + BigQuery)
@@ -146,7 +147,7 @@ services:
       - ./evaluation_results:/app/evaluation_results
 
       # Mount ADC config
-      - C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro
+      - /Users/mgmanjusha/.config/gcloud
 
 networks:
   default:

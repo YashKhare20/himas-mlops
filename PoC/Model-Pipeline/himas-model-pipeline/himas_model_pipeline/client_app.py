@@ -33,6 +33,7 @@ _MLFLOW_EXP = os.getenv("MLFLOW_EXPERIMENT_NAME", "himas-federated")
 mlflow.set_tracking_uri(_MLFLOW_URI)
 mlflow.set_experiment(_MLFLOW_EXP)
 
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
