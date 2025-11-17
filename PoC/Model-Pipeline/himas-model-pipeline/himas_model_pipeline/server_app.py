@@ -21,6 +21,15 @@ from himas_model_pipeline.task import (
     get_config_value, set_seed, load_hyperparameters
 )
 
+import os
+import mlflow
+import mlflow.keras
+
+_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "file:./mlruns")
+_MLFLOW_EXP = os.getenv("MLFLOW_EXPERIMENT_NAME", "himas-federated")
+mlflow.set_tracking_uri(_MLFLOW_URI)
+mlflow.set_experiment(_MLFLOW_EXP)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -51,6 +60,23 @@ def main(grid: Grid, context: Context) -> None:
     logger.info("HIMAS FEDERATED LEARNING - ICU MORTALITY PREDICTION")
     logger.info("="*70)
 
+    # --- MLflow (server-run) setup: non-intrusive additions ---
+    import os
+    import mlflow
+    run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    try:
+        # Respect env if provided by docker-compose
+        tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+        if tracking_uri:
+            mlflow.set_tracking_uri(tracking_uri)
+        exp_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "himas-federated")
+        mlflow.set_experiment(exp_name)
+        mlflow.start_run(run_name=f"server_{run_ts}")
+        mlflow.set_tags({"role": "server", "phase": "federated-training"})
+    except Exception as e:
+        logger.warning(f"MLflow setup warning: {e}")
+    # ----------------------------------------------------------
+
     # Configure reproducibility
     seed = context.run_config.get(
         "random-seed", get_config_value('tool.flwr.app.config.random-seed', 42))
@@ -71,6 +97,23 @@ def main(grid: Grid, context: Context) -> None:
     logger.info(f"  Train fraction: {fraction_train}")
     logger.info(f"  Evaluate fraction: {fraction_evaluate}")
 
+    # --- MLflow: log config params/tags (added) ---
+    try:
+        mlflow.log_params({
+            "num_server_rounds": num_rounds,
+            "fraction_train": fraction_train,
+            "fraction_evaluate": fraction_evaluate,
+            "random_seed": seed,
+        })
+        mlflow.set_tags({
+            "project_id": str(project_id),
+            "dataset_id": str(dataset_id),
+            "strategy": "FedAvg",
+        })
+    except Exception as e:
+        logger.warning(f"MLflow param/tag logging warning: {e}")
+    # ----------------------------------------------
+
     # Get feature dimensions
     num_features = get_config_value('tool.himas.data.numerical-features', [])
     cat_features = get_config_value('tool.himas.data.categorical-features', [])
@@ -78,9 +121,30 @@ def main(grid: Grid, context: Context) -> None:
     logger.info(
         f"  Input dimension: {input_dim} ({len(num_features)} numerical + {len(cat_features)} categorical)")
 
+    # --- MLflow: log input_dim (added) ---
+    try:
+        mlflow.log_param("input_dim", input_dim)
+        mlflow.log_param("num_numerical_features", len(num_features))
+        mlflow.log_param("num_categorical_features", len(cat_features))
+    except Exception as e:
+        logger.warning(f"MLflow input_dim logging warning: {e}")
+    # -------------------------------------
+
     # Load shared hyperparameters
     hyperparameters = get_shared_hyperparameters(context)
     hp_path = get_config_value('tool.flwr.app.config.shared-hyperparameters')
+
+    # --- MLflow: log hyperparameters summary and attach JSON if available (added) ---
+    try:
+        if isinstance(hyperparameters, dict):
+            # log compactly; avoid huge nested dumps
+            compact_hp = {k: hyperparameters[k] for k in sorted(hyperparameters.keys())}
+            mlflow.log_dict(compact_hp, "hyperparameters_used.json")
+        if hp_path and Path(hp_path).exists():
+            mlflow.log_artifact(hp_path, artifact_path="hyperparameters")
+    except Exception as e:
+        logger.warning(f"MLflow hyperparameters logging warning: {e}")
+    # --------------------------------------------------------------------------------
 
     # Extract hospital identifier from hyperparameters path for organized model saving
     if hp_path:
@@ -98,6 +162,13 @@ def main(grid: Grid, context: Context) -> None:
     # Log model statistics
     total_params = model.count_params()
     logger.info(f"Model parameters: {total_params:,}")
+
+    # --- MLflow: log model param count (added) ---
+    try:
+        mlflow.log_param("total_parameters", int(total_params))
+    except Exception as e:
+        logger.warning(f"MLflow total_parameters logging warning: {e}")
+    # ---------------------------------------------
 
     # Initialize FedAvg strategy
     logger.info("-"*70)
@@ -169,3 +240,22 @@ def main(grid: Grid, context: Context) -> None:
     logger.info("="*70)
     logger.info("SERVER TASK COMPLETED SUCCESSFULLY")
     logger.info("="*70)
+
+    # --- MLflow: log artifacts and finalize run (added) ---
+    try:
+        # Log where/what we saved
+        mlflow.log_param("saved_model_dir", str(models_save_dir))
+        mlflow.log_param("saved_model_path", str(model_path))
+        # Attach artifacts
+        if model_path.exists():
+            mlflow.log_artifact(str(model_path), artifact_path="model")
+        if metadata_path.exists():
+            mlflow.log_artifact(str(metadata_path), artifact_path="model")
+    except Exception as e:
+        logger.warning(f"MLflow artifact logging warning: {e}")
+    finally:
+        try:
+            mlflow.end_run()
+        except Exception:
+            pass
+    # -------------------------------------------------------
