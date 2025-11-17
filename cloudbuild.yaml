@@ -169,6 +169,7 @@ steps:
         cd /app
         mkdir -p models
         cp /workspace/models/himas_federated_mortality_model.keras models/
+        rm -rf evaluation_results
         mkdir -p evaluation_results
         python scripts/evaluate_model.py
         cp -r evaluation_results /workspace/
