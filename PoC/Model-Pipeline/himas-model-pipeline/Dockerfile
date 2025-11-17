@@ -4,9 +4,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
-# Install Google Cloud SDK
-RUN curl https://sdk.cloud.google.com | bash
-ENV PATH="/root/google-cloud-sdk/bin:${PATH}"
+
+
 
 # System dependencies (compiler etc. for some Python deps)
 # RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,6 +14,10 @@ ENV PATH="/root/google-cloud-sdk/bin:${PATH}"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential gcc git jq bc curl \
   && rm -rf /var/lib/apt/lists/*
+
+# Install Google Cloud SDK
+RUN curl https://sdk.cloud.google.com | bash
+ENV PATH="/root/google-cloud-sdk/bin:${PATH}"
 
 # Create working directory
 WORKDIR /app
