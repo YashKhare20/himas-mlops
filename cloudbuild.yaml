@@ -213,8 +213,8 @@ steps:
         echo "Checking for previous model..."
         
         # Get current model metrics
-        NEW_ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/*.json)
-        NEW_REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/*.json)
+        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/results/*.json)
+        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/results/*.json)
         
         echo "New model - Accuracy: $$NEW_ACC, Recall: $$NEW_REC"
         
@@ -236,8 +236,8 @@ steps:
         }
         
         # Get previous model metrics
-        PREV_ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' prev_results/*.json)
-        PREV_REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' prev_results/*.json)
+        PREV_ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/results/*.json)
+        PREV_REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/results/*.json)
         
         echo "Previous model - Accuracy: $$PREV_ACC, Recall: $$PREV_REC"
         
@@ -284,9 +284,9 @@ steps:
       - |
         # Extract metrics from evaluation results
         cd /workspace
-        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/*.json)
-        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/*.json)
-        PREC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .precision' evaluation_results/*.json)
+        ACC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .accuracy' evaluation_results/results/*.json)
+        REC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .recall' evaluation_results/results/*.json)
+        PREC=$$(jq '.[] | select(.hospital=="AGGREGATED") | .precision' evaluation_results/results/*.json)
         
         echo "Registering model in Vertex AI Model Registry..."
         echo "Accuracy: $$ACC | Recall: $$REC | Precision: $$PREC"
