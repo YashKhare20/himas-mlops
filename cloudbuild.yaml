@@ -302,6 +302,11 @@ steps:
         TIMESTAMP=$$(cat /workspace/model_timestamp.txt)
         echo "Using timestamp: $$TIMESTAMP"
 
+        # Get the SHA256 digest of the image
+        IMAGE_DIGEST=$$(gcloud container images describe gcr.io/$PROJECT_ID/himas-training:$BUILD_ID --format='get(image_summary.digest)')
+        echo "Using image digest: $$IMAGE_DIGEST"
+
+
         LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
         echo "Using metrics from: $$LATEST_JSON"
 
@@ -312,13 +317,13 @@ steps:
         echo "Registering model in Vertex AI Model Registry..."
         echo "Accuracy: $$ACC | Recall: $$REC | Precision: $$PREC"
         
-        # Register model in Vertex AI Model Registry
+        # Use SHA256 digest instead of tag
         gcloud ai models upload \
           --region=us-central1 \
           --display-name=himas-federated-mortality-model \
           --description="Federated learning model for ICU mortality prediction - Build $BUILD_ID - $$TIMESTAMP" \
           --artifact-uri=gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/ \
-          --container-image-uri=gcr.io/$PROJECT_ID/himas-training:$BUILD_ID \
+          --container-image-uri=gcr.io/$PROJECT_ID/himas-training@$$IMAGE_DIGEST \
           --version-aliases=build-$BUILD_ID,latest \
           --project=$PROJECT_ID
         
