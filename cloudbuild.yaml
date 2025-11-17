@@ -290,6 +290,24 @@ steps:
       - '/workspace/evaluation_results/'
       - 'gs://himas-mlops-models/evaluation-results/$BUILD_ID/'
 
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'wait-for-image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Waiting for image to be fully available..."
+        for i in {1..30}; do
+          if gcloud container images describe gcr.io/$PROJECT_ID/himas-training:$BUILD_ID --format='get(image_summary.digest)' 2>/dev/null; then
+            echo "✅ Image is available!"
+            exit 0
+          fi
+          echo "Attempt $$i: Image not ready yet, waiting 10 seconds..."
+          sleep 10
+        done
+        echo "❌ Image still not available after 5 minutes"
+        exit 1
+
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'register-model-vertex'
     entrypoint: 'bash'
