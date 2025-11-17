@@ -13,15 +13,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create working directory
 WORKDIR /app
 
-# Install build backend and project dependencies
-COPY pyproject.toml ./
+# Copy the entire project into the image
+COPY . .
 
+# Install build backend and project dependencies (incl. mlflow etc. via pyproject)
 RUN pip install --upgrade pip \
  && pip install hatchling \
+ && pip install "flwr[app]" \ 
  && pip install .
-
-# Copy the rest of the source code into the image
-COPY . .
 
 # Default command is a shell; docker-compose overrides this
 CMD ["bash"]
