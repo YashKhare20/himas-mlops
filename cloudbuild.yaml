@@ -267,11 +267,19 @@ steps:
         fi
 
   - name: 'gcr.io/cloud-builders/gsutil'
-    id: 'upload-model'
-    args:
-      - 'cp'
-      - '/workspace/models/himas_federated_mortality_model.keras'
-      - 'gs://himas-mlops-models/models/model_$BUILD_ID.keras'
+  id: 'upload-model'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+      echo "Uploading model with timestamp: $$TIMESTAMP"
+      gsutil cp /workspace/models/himas_federated_mortality_model.keras \
+        gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/model.keras
+      
+      # Store timestamp for next step
+      echo "$$TIMESTAMP" > /workspace/model_timestamp.txt
+      
 
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-results'
@@ -288,8 +296,11 @@ steps:
     args:
       - '-c'
       - |
-        # Extract metrics from evaluation results
         cd /workspace
+        
+        # Read timestamp from previous step
+        TIMESTAMP=$$(cat /workspace/model_timestamp.txt)
+        echo "Using timestamp: $$TIMESTAMP"
 
         LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
         echo "Using metrics from: $$LATEST_JSON"
@@ -305,14 +316,13 @@ steps:
         gcloud ai models upload \
           --region=us-central1 \
           --display-name=himas-federated-mortality-model \
-          --description="Federated learning model for ICU mortality prediction - Build $BUILD_ID" \
-          --artifact-uri=gs://himas-mlops-models/models/model_$BUILD_ID.keras \
+          --description="Federated learning model for ICU mortality prediction - Build $BUILD_ID - $$TIMESTAMP" \
+          --artifact-uri=gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/ \
           --container-image-uri=gcr.io/$PROJECT_ID/himas-training:$BUILD_ID \
           --version-aliases=build-$BUILD_ID,latest \
           --project=$PROJECT_ID
         
-        echo "✅ Model registered in Vertex AI Model Registry"
-
+        echo "✅ Model registered in Vertex AI Model Registry at gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/"
 
 images:
   - 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
