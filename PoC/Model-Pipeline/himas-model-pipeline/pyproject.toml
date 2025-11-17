@@ -21,6 +21,7 @@ dependencies = [
     "db-dtypes>=1.1.1",  # Required for BigQuery data types,
     "keras-tuner>=1.4.0",
     "toml>=0.10.2",
+    "fairlearn>=0.10.0",  # Bias detection and fairness metrics
 ]
 
 [tool.hatch.build.targets.wheel]

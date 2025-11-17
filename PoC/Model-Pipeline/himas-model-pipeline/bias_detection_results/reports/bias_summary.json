@@ -1,0 +1,69 @@
+{
+  "timestamp": "2025-11-16T22:49:57.892188",
+  "model_path": "models/hyper-hospital_c/himas_federated_mortality_model_20251116_165239.keras",
+  "bias_check_passed": false,
+  "fairness_metrics": {
+    "demographic_parity_difference": {
+      "gender": 0.028907729193708764,
+      "age_group": 0.14221909341767658,
+      "insurance": 0.22635877733523707,
+      "race": 0.5
+    },
+    "equalized_odds_difference": {
+      "gender": 0.025563022351353187,
+      "age_group": 0.10744617815524382,
+      "insurance": 0.21764705882352942,
+      "race": 1.0
+    }
+  },
+  "thresholds": {
+    "demographic_parity": 0.1,
+    "equalized_odds": 0.1
+  },
+  "violations": [
+    {
+      "feature": "age_group",
+      "metric": "demographic_parity_difference",
+      "value": 0.14221909341767658,
+      "threshold": 0.1,
+      "severity": "medium"
+    },
+    {
+      "feature": "age_group",
+      "metric": "equalized_odds_difference",
+      "value": 0.10744617815524382,
+      "threshold": 0.1,
+      "severity": "medium"
+    },
+    {
+      "feature": "insurance",
+      "metric": "demographic_parity_difference",
+      "value": 0.22635877733523707,
+      "threshold": 0.1,
+      "severity": "high"
+    },
+    {
+      "feature": "insurance",
+      "metric": "equalized_odds_difference",
+      "value": 0.21764705882352942,
+      "threshold": 0.1,
+      "severity": "high"
+    },
+    {
+      "feature": "race",
+      "metric": "demographic_parity_difference",
+      "value": 0.5,
+      "threshold": 0.1,
+      "severity": "high"
+    },
+    {
+      "feature": "race",
+      "metric": "equalized_odds_difference",
+      "value": 1.0,
+      "threshold": 0.1,
+      "severity": "high"
+    }
+  ],
+  "max_demographic_parity": 0.5,
+  "max_equalized_odds": 1.0
+}

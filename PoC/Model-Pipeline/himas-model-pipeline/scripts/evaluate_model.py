@@ -860,6 +860,8 @@ Examples:
   %(prog)s                          # Use default threshold from config
   %(prog)s --threshold 0.45         # Use custom threshold
   %(prog)s --threshold 0.467        # Use optimized threshold from optimization
+  %(prog)s --run-bias-detection     # Run bias detection after evaluation
+  %(prog)s --threshold 0.5 --run-bias-detection  # Both evaluation and bias detection
         """
     )
 
@@ -870,12 +872,33 @@ Examples:
         help='Prediction threshold (0.0-1.0). Default: from pyproject.toml or 0.5'
     )
 
+    parser.add_argument(
+        '--run-bias-detection',
+        action='store_true',
+        default=False,
+        help='Automatically run bias detection after evaluation'
+    )
+
+    parser.add_argument(
+        '--bias-dp-threshold',
+        type=float,
+        default=0.1,
+        help='Demographic parity threshold for bias detection (default: 0.1)'
+    )
+
+    parser.add_argument(
+        '--bias-eo-threshold',
+        type=float,
+        default=0.1,
+        help='Equalized odds threshold for bias detection (default: 0.1)'
+    )
+
     return parser.parse_args()
 
 
 def main():
     """
-    Execute complete model evaluation workflow.
+    Execute complete model evaluation workflow with optional bias detection.
 
     Workflow:
     1. Parse command-line arguments
@@ -884,6 +907,7 @@ def main():
     4. Evaluate on test data from all hospitals
     5. Generate visualizations
     6. Save comprehensive results
+    7. (Optional) Run bias detection and link results
     """
     args = parse_args()
 
@@ -930,6 +954,160 @@ def main():
     logger.info("EVALUATION COMPLETED SUCCESSFULLY")
     logger.info(f"Results directory: {evaluator.output_dir}")
     logger.info("="*70)
+
+    # Run bias detection if requested
+    if args.run_bias_detection:
+        logger.info("")
+        logger.info("="*70)
+        logger.info("RUNNING BIAS DETECTION")
+        logger.info("="*70)
+        
+        try:
+            # Import bias detection module
+            import sys
+            from pathlib import Path
+            parent_dir = Path(__file__).parent.parent
+            if str(parent_dir) not in sys.path:
+                sys.path.insert(0, str(parent_dir))
+            
+            # Import bias detection functions
+            from bias_detection.detect_bias import (
+                load_model_and_preprocessor,
+                generate_predictions,
+                calculate_bias_metrics,
+                check_bias_thresholds
+            )
+            from bias_detection.utils import load_test_data_with_demographics
+            from google.cloud import bigquery
+            
+            # Run bias detection with same model and threshold
+            logger.info(f"Running bias detection on model: {MODEL_PATH}")
+            logger.info(f"Using threshold: {threshold}")
+            
+            # Load model and preprocessor (reuse from evaluation if possible)
+            model, preprocessor = load_model_and_preprocessor(MODEL_PATH, PROJECT_ID)
+            
+            # Load test data with demographics
+            client = bigquery.Client(project=PROJECT_ID)
+            dataset_id = get_config_value('tool.himas.data.dataset-id', 'federated_demo')
+            test_data, demographics = load_test_data_with_demographics(
+                PROJECT_ID, dataset_id, client
+            )
+            
+            # Generate predictions
+            y_pred_proba = generate_predictions(model, preprocessor, test_data)
+            target_col = get_config_value('tool.himas.data.target-column', 'icu_mortality_label')
+            y_true = test_data[target_col].values
+            y_pred = (y_pred_proba >= threshold).astype(int)
+            
+            # Calculate bias metrics
+            bias_results = calculate_bias_metrics(y_true, y_pred, demographics)
+            
+            # Check thresholds
+            bias_check = check_bias_thresholds(
+                bias_results['fairness_metrics'],
+                args.bias_dp_threshold,
+                args.bias_eo_threshold
+            )
+            
+            # Save results
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            results = {
+                'timestamp': datetime.now().isoformat(),
+                'model_path': str(MODEL_PATH),
+                'prediction_threshold': threshold,
+                'total_samples': len(y_true),
+                'positive_samples': int(y_true.sum()),
+                'mortality_rate': float(y_true.mean()),
+                **bias_results,
+                'bias_check': bias_check
+            }
+            
+            # Save detailed report
+            output_dir = Path("bias_detection_results")
+            output_dir.mkdir(exist_ok=True)
+            (output_dir / 'reports').mkdir(exist_ok=True)
+            
+            report_path = output_dir / 'reports' / f'bias_report_{timestamp}.json'
+            with open(report_path, 'w') as f:
+                json.dump(results, f, indent=2)
+            logger.info(f"Detailed report saved: {report_path}")
+            
+            # Save summary for CI/CD
+            summary = {
+                'timestamp': results['timestamp'],
+                'model_path': results['model_path'],
+                'bias_check_passed': bias_check['bias_check_passed'],
+                'fairness_metrics': {
+                    'demographic_parity_difference': {
+                        feature: metrics['demographic_parity_difference']
+                        for feature, metrics in bias_results['fairness_metrics'].items()
+                    },
+                    'equalized_odds_difference': {
+                        feature: metrics['equalized_odds_difference']
+                        for feature, metrics in bias_results['fairness_metrics'].items()
+                    }
+                },
+                'thresholds': bias_check['thresholds'],
+                'violations': bias_check['violations'],
+                'max_demographic_parity': bias_check['max_demographic_parity'],
+                'max_equalized_odds': bias_check['max_equalized_odds']
+            }
+            
+            summary_path = output_dir / 'reports' / 'bias_summary.json'
+            with open(summary_path, 'w') as f:
+                json.dump(summary, f, indent=2)
+            logger.info(f"Summary saved: {summary_path}")
+            
+            # Log results
+            logger.info(f"Bias Check: {'PASSED' if bias_check['bias_check_passed'] else 'FAILED'}")
+            logger.info(f"Max Demographic Parity: {bias_check['max_demographic_parity']:.4f}")
+            logger.info(f"Max Equalized Odds: {bias_check['max_equalized_odds']:.4f}")
+            
+            logger.info("="*70)
+            logger.info("BIAS DETECTION COMPLETED")
+            logger.info("="*70)
+            
+            # Link results - add bias summary path to evaluation results
+            try:
+                bias_summary_path = Path("bias_detection_results/reports/bias_summary.json")
+                if bias_summary_path.exists():
+                    with open(bias_summary_path) as f:
+                        bias_summary = json.load(f)
+                    
+                    # Update evaluation results with bias info
+                    eval_results_path = evaluator.output_dir / "results" / f"evaluation_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                    # Find latest evaluation results file
+                    results_dir = evaluator.output_dir / "results"
+                    if results_dir.exists():
+                        eval_files = sorted(results_dir.glob("evaluation_results_*.json"), key=lambda p: p.stat().st_mtime)
+                        if eval_files:
+                            eval_results_path = eval_files[-1]
+                            with open(eval_results_path) as f:
+                                eval_results = json.load(f)
+                            
+                            eval_results['bias_detection'] = {
+                                'enabled': True,
+                                'bias_check_passed': bias_summary.get('bias_check_passed', False),
+                                'bias_summary_path': str(bias_summary_path),
+                                'max_demographic_parity': bias_summary.get('max_demographic_parity', 0),
+                                'max_equalized_odds': bias_summary.get('max_equalized_odds', 0)
+                            }
+                            
+                            with open(eval_results_path, 'w') as f:
+                                json.dump(eval_results, f, indent=2)
+                            
+                            logger.info(f"Linked bias detection results to evaluation report")
+                            logger.info(f"  Bias check passed: {bias_summary.get('bias_check_passed', False)}")
+                            
+            except Exception as link_error:
+                logger.warning(f"Failed to link bias results to evaluation: {link_error}")
+                logger.warning("Bias detection completed, but results not linked to evaluation JSON")
+                            
+        except Exception as e:
+            logger.warning(f"Bias detection failed: {e}")
+            logger.warning("Evaluation completed successfully, but bias detection encountered an error")
+            logger.warning("You can run bias detection separately: python bias_detection/detect_bias.py")
 
 
 if __name__ == "__main__":
