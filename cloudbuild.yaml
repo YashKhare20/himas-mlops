@@ -156,22 +156,22 @@ steps:
         echo "✅ Model copied to workspace:"
         ls -lh /workspace/models/
 
-  # - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
-  #   id: 'evaluate-model'
-  #   env:
-  #     - 'GCP_PROJECT_ID=$PROJECT_ID'
-  #     - 'DATASET_ID=federated_demo'
-  #   entrypoint: 'bash'
-  #   args:
-  #     - '-c'
-  #     - |
-  #       cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/* /app/
-  #       cd /app
-  #       mkdir -p models
-  #       cp /workspace/models/himas_federated_mortality_model.keras models/
-  #       mkdir -p evaluation_results
-  #       python evaluate_model.py
-  #       cp -r evaluation_results /workspace/
+  - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
+    id: 'evaluate-model'
+    env:
+      - 'GCP_PROJECT_ID=$PROJECT_ID'
+      - 'DATASET_ID=federated_demo'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/* /app/
+        cd /app
+        mkdir -p models
+        cp /workspace/models/himas_federated_mortality_model.keras models/
+        mkdir -p evaluation_results
+        python PoC/Model-Pipeline/himas-model-pipeline/scripts/evaluate_model.py
+        cp -r evaluation_results /workspace/
 
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'validate-metrics'
