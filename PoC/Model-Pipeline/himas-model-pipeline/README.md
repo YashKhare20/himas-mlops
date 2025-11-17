@@ -860,6 +860,156 @@ shared-hyperparameters = "hyperparameters/hospital_a_best_hyperparameters.json"
 
 ---
 
+## CI/CD Pipeline
+
+### Overview
+
+Automated pipeline for federated learning model training, validation, and deployment. Triggers automatically on push to `main` or `feature_manjusha` branches.
+
+**Pipeline Flow:**
+```
+Git Push → Build Docker Image → Train Model → Evaluate → Validate Metrics → 
+Bias Detection → Compare with Previous → Upload to GCS → Register in Vertex AI
+```
+
+**Duration:** ~18-22 minutes | **All 6 MLOps requirements met** ✅
+
+---
+
+### Prerequisites (One-Time Setup)
+
+Before pushing code that triggers the pipeline, ensure:
+
+**1. Authenticate with Google Cloud:**
+```bash
+gcloud auth login
+gcloud config set project erudite-carving-472018-r5
+```
+
+**2. Verify permissions are configured:**
+```bash
+# Check if you can access BigQuery
+bq query --use_legacy_sql=false \
+  'SELECT COUNT(*) FROM `erudite-carving-472018-r5.federated_demo.hospital_a_data`'
+
+# Check if GCS bucket exists
+gsutil ls gs://himas-mlops-models/
+```
+
+**3. Ensure you're on the correct branch:**
+```bash
+git checkout main  # or feature_manjusha
+```
+
+---
+
+### Triggering the Pipeline
+```bash
+# Make your changes
+git add .
+git commit -m "Your commit message"
+git push origin main  # Pipeline triggers automatically
+```
+
+**Monitor build:**
+- Console: https://console.cloud.google.com/cloud-build/builds?project=erudite-carving-472018-r5
+- CLI: `gcloud builds list --limit=5`
+
+---
+
+### Pipeline Stages
+
+| Stage | Duration | What It Does |
+|-------|----------|-------------|
+| **Build Image** | 2-3 min | Creates Docker container with all dependencies |
+| **Train Model** | 13-15 min | Runs federated learning (3 hospitals, 15 rounds) |
+| **Evaluate** | <1 min | Computes metrics on test data |
+| **Validate** | <1 min | Checks accuracy ≥85%, recall ≥60% |
+| **Bias Check** | <1 min | Ensures fairness across hospitals |
+| **Rollback Check** | <1 min | Compares with previous model |
+| **Upload Model** | <1 min | Saves to GCS bucket |
+| **Upload Results** | <1 min | Saves metrics and figures |
+| **Register** | <1 min | Adds to Vertex AI Model Registry |
+
+---
+
+### Success & Failure
+
+**✅ Pipeline succeeds when:**
+- Accuracy ≥ 85% AND Recall ≥ 60%
+- Hospital metrics within fairness tolerance (Δacc ≤5%, Δrecall ≤7%)
+- New model ≥ previous model performance
+
+**❌ Pipeline fails and stops when:**
+- Model doesn't meet minimum thresholds
+- Bias detected across hospitals
+- New model underperforms previous model
+- Build or permission errors
+
+**Check your email for build notifications** 📧
+
+---
+
+### Viewing Results
+
+**GCS Bucket outputs:**
+```
+gs://himas-mlops-models/
+├── models/model_<BUILD_ID>.keras
+└── evaluation-results/<BUILD_ID>/
+    ├── results/evaluation_results_*.json
+    └── figures/
+        ├── roc_curves.png
+        ├── confusion_matrices.png
+        └── metrics_comparison.png
+```
+
+**Download results:**
+```bash
+# List recent builds
+gsutil ls gs://himas-mlops-models/evaluation-results/
+
+# Download specific build results
+gsutil cp -r gs://himas-mlops-models/evaluation-results/<BUILD_ID>/ ./
+```
+
+**View in console:**
+- Models: https://console.cloud.google.com/storage/browser/himas-mlops-models
+- Vertex AI: https://console.cloud.google.com/vertex-ai/models
+
+---
+
+### Troubleshooting
+
+**View build logs:**
+```bash
+# Get latest build logs
+gcloud builds log $(gcloud builds list --limit=1 --format='value(id)')
+```
+
+**Common issues:**
+
+| Error | Solution |
+|-------|----------|
+| Permission denied | Verify gcloud authentication: `gcloud auth list` |
+| Build timeout | Check if training data is accessible in BigQuery |
+| Validation failed | Review model performance in build logs |
+| Bias detected | Check hospital data distributions for issues |
+
+---
+
+### Requirements Checklist
+
+| Requirement | Implementation | Status |
+|-------------|---------------|--------|
+| CI/CD Setup | Google Cloud Build with cloudbuild.yaml | ✅ |
+| Model Validation | Automated threshold checks (acc ≥85%, recall ≥60%) | ✅ |
+| Bias Detection | Hospital fairness validation | ✅ |
+| Model Registry | GCS + Vertex AI registration | ✅ |
+| Notifications | Email alerts for build status | ✅ |
+| Rollback | Performance comparison with previous model | ✅ |
+
+
 ## Resources
 
 **Flower Framework:**
