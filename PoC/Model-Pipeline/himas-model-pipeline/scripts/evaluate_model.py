@@ -657,7 +657,7 @@ class ModelEvaluator:
         plt.legend(fontsize=10, loc='lower right')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
-        plt.savefig(save_dir / 'roc_curves.png', dpi=300, bbox_inches='tight')
+        plt.savefig(save_dir / 'roc_curves.png', dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [1/6] ROC curves saved")
 
@@ -670,18 +670,26 @@ class ModelEvaluator:
             precision, recall, _ = precision_recall_curve(
                 data['y_test'], data['y_pred_proba'])
             ap = average_precision_score(data['y_test'], data['y_pred_proba'])
-            plt.plot(recall, precision,
-                     label=f'{hospital.replace("_", " ").title()} (AP={ap:.3f})', linewidth=2)
+            plt.plot(
+                recall,
+                precision,
+                label=f'{hospital.replace("_", " ").title()} (AP={ap:.3f})',
+                linewidth=2,
+            )
 
         plt.xlabel('Recall', fontsize=12)
         plt.ylabel('Precision', fontsize=12)
         plt.title('Precision-Recall Curves - ICU Mortality Prediction',
                   fontsize=14, fontweight='bold')
+
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+
         plt.legend(fontsize=10, loc='lower left')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(save_dir / 'precision_recall_curves.png',
-                    dpi=300, bbox_inches='tight')
+                    dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [2/6] Precision-Recall curves saved")
 
@@ -704,7 +712,7 @@ class ModelEvaluator:
 
         plt.tight_layout()
         plt.savefig(
-            save_dir / 'confusion_matrices.png', dpi=300, bbox_inches='tight')
+            save_dir / 'confusion_matrices.png', dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [3/6] Confusion matrices saved")
 
@@ -738,7 +746,7 @@ class ModelEvaluator:
         plt.grid(True, alpha=0.3, axis='y')
         plt.tight_layout()
         plt.savefig(
-            save_dir / 'metrics_comparison.png', dpi=300, bbox_inches='tight')
+            save_dir / 'metrics_comparison.png', dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [4/6] Metrics comparison saved")
 
@@ -767,7 +775,7 @@ class ModelEvaluator:
 
         plt.tight_layout()
         plt.savefig(
-            save_dir / 'prediction_distribution.png', dpi=300, bbox_inches='tight')
+            save_dir / 'prediction_distribution.png', dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [5/6] Prediction distribution saved")
 
@@ -803,7 +811,7 @@ class ModelEvaluator:
 
         plt.tight_layout()
         plt.savefig(save_dir / 'calibration_curves.png',
-                    dpi=300, bbox_inches='tight')
+                    dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [6/6] Calibration curves saved")
 

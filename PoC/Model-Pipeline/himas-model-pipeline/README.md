@@ -15,7 +15,7 @@
   * [2. Create Virtual Environment](#2-create-virtual-environment)
   * [3. Install Dependencies](#3-install-dependencies)
   * [4. Configure Google Cloud](#4-configure-google-cloud)
-  * [5. Docker-Based Setup (Optional)](#5-docker-based-setup-optional)
+  * [5. Docker-Based Setup](#5-docker-based-setup)
 * [Data Pipeline Integration](#data-pipeline-integration)
 * [Model Training](#model-training)
 
@@ -25,6 +25,8 @@
 
   * [Model Evaluation](#model-evaluation)
   * [Threshold Optimization](#threshold-optimization)
+* [Experiment Tracking and Results](#experiment-tracking-and-results)
+* [Model Sensitivity Analysis](#model-sensitivity-analysis)
 * [Running the Application](#running-the-application)
 
   * [Simulation Mode](#simulation-mode)
@@ -189,7 +191,7 @@ bq query --use_legacy_sql=false \
   'SELECT COUNT(*) as count FROM `erudite-carving-472018-r5.federated_demo.hospital_a_data`'
 ```
 
-### 5. Docker-Based Setup (Optional)
+### 5. Docker-Based Setup
 
 The project includes a `docker-compose.yml` (under `Model-Pipeline/himas-model-pipeline`) that runs the **end-to-end federated pipeline** with:
 
@@ -545,6 +547,135 @@ Aggregated Results: 13,359 total test samples
 | Hospital A | 5,607        | 11.43%         | 0.9201  | 74.51% | 55.12%    |
 | Hospital B | 4,385        | 11.66%         | 0.9175  | 72.37% | 56.89%    |
 | Hospital C | 3,367        | 12.01%         | 0.9169  | 72.38% | 55.21%    |
+
+## Experiment Tracking and Results
+
+This project uses **MLflow** for experiment tracking so that all model development decisions are reproducible and auditable.
+
+### What is Tracked
+
+Each training and evaluation run is logged to MLflow under dedicated experiments (for example, `himas-federated` for training and `himas-federated-eval` for post-hoc evaluation). For every run, the pipeline records:
+
+* **Run metadata** – experiment name, timestamp, run ID
+* **Hyperparameters** – learning rate, architecture, number of layers, dropout rate, batch size, number of rounds, etc.
+* **Model versions** – path to the saved `.keras` model and associated metadata JSON
+* **Training metrics** – loss, AUC and other metrics per round/hospital during federated training
+* **Validation metrics** – hospital-level and aggregated validation AUC, precision, recall, and F1
+* **Evaluation metrics** – test-set metrics logged by `scripts/evaluate_model.py` for each hospital and for the aggregated cohort
+* **Threshold configuration** – prediction threshold used during evaluation and threshold optimization
+* **Derived metrics** – specificity, NPV, prevalence, false negatives/false positives
+* **Artifacts** – all generated plots and JSON summaries (evaluation figures, threshold analysis, SHAP outputs, etc.)
+
+The evaluation script (`scripts/evaluate_model.py`) is responsible for logging evaluation metrics and artifacts. It wraps the full evaluation workflow inside an `mlflow.start_run(...)` context, logs parameters (`mlflow.log_params`), metrics (`mlflow.log_metric`), and then uploads the contents of `evaluation_results/figures/` and `evaluation_results/results/` using `mlflow.log_artifacts`.
+
+### Artifact Organization
+
+For each evaluation run, MLflow stores the following artifacts under the run’s `artifacts/` directory:
+
+* `figures/himas_federated_mortality_model/…` – PNG visualizations produced by the evaluator:
+
+  * `roc_curves.png`
+  * `precision_recall_curves.png`
+  * `confusion_matrices.png`
+  * `metrics_comparison.png`
+  * `prediction_distribution.png`
+  * `calibration_curves.png`
+* `results/evaluation_results_YYYYMMDD_HHMMSS.json` – structured JSON with:
+
+  * configuration (project, dataset, model path, threshold)
+  * per-hospital metrics
+  * aggregated metrics across all hospitals
+
+![mlflow-ui](image-1.png)
+
+This layout mirrors the on-disk directory structure under `evaluation_results/` so that results can be inspected either locally or via the MLflow UI.
+
+### Visual Results for Model Selection
+
+The following plots, generated in `evaluation_results/figures/{model_name}/`, are used to compare and justify model choices:
+
+* **`roc_curves.png`** – ROC curves per hospital with AUC values, used to assess discrimination.
+* **`precision_recall_curves.png`** – precision–recall curves on imbalanced mortality labels, used to understand performance in the high-risk region.
+* **`metrics_comparison.png`** – grouped bar chart of accuracy, precision, recall, F1, and AUC across hospitals.
+* **`confusion_matrices.png`** – per-hospital confusion matrices at the chosen threshold, highlighting false negatives and false positives.
+* **`prediction_distribution.png`** – histogram of predicted mortality probabilities for true survivors vs. true deceased patients, illustrating separation.
+* **`calibration_curves.png`** – calibration plots (predicted vs. observed mortality) to evaluate probability calibration.
+
+Together, these visualizations provide a complete picture of performance across sites and support both model comparison and clinical interpretability.
+
+### Final Model Selection
+
+The final federated model was selected based on:
+
+* **Validation AUC** during hyperparameter tuning and federated training
+* **Stability across federated rounds** and across hospitals
+* **Balanced precision–recall trade-off** at clinically relevant thresholds
+* **Calibration quality**, as seen in the calibration curves
+* **Consistency of performance** across the three hospitals in the held-out test set
+
+These criteria were evaluated using the metrics and artifacts logged to MLflow, ensuring that the chosen model is both statistically strong and clinically acceptable.
+
+---
+
+## Model Sensitivity Analysis
+
+Model sensitivity analysis is used to understand how the federated model’s performance changes with respect to **input features** and **hyperparameters**. This analysis is implemented as a post-hoc step on top of the trained model and logged experiments.
+
+A dedicated script (e.g., `scripts/model_sensitivity_analysis.py`) performs two main analyses:
+
+1. **Feature importance sensitivity** using SHAP.
+2. **Hyperparameter sensitivity** using MLflow run history.
+
+### Feature Importance Sensitivity (SHAP)
+
+To quantify how each clinical feature contributes to the mortality prediction, the sensitivity script:
+
+1. **Loads the latest trained model** and reuses the same leakage-safe preprocessing used in evaluation (numerical scaling and categorical encoding).
+2. **Samples a held-out evaluation subset** from the test data for SHAP analysis.
+3. **Computes SHAP values** for all features, using a model-appropriate SHAP explainer.
+4. **Aggregates global importance** by taking the mean absolute SHAP value per feature.
+5. **Exports artifacts** to `evaluation_results/figures/{model_name}/` and JSON summaries to `evaluation_results/results/`.
+
+Typical outputs include:
+
+* `feature_importance_shap_bar.png` – bar chart of global feature importance (mean |SHAP| per feature).
+* `feature_importance_shap_summary.png` – SHAP beeswarm plot showing the direction and magnitude of feature effects across patients.
+* `feature_importance_shap_values.json` (optional) – serialized per-feature importance values for downstream reporting.
+
+This analysis helps to:
+
+* Verify that the model relies on **clinically meaningful** variables.
+* Identify **spurious or unstable** drivers of prediction.
+* Support interpretability discussions with clinical stakeholders.
+
+### Hyperparameter Sensitivity Analysis
+
+Hyperparameter sensitivity is performed by analyzing **historical MLflow runs** from the tuning and training experiments.
+
+The sensitivity script:
+
+1. **Queries MLflow** for all runs in the relevant experiment (e.g., hyperparameter tuning or federated training).
+2. **Extracts hyperparameters and metrics** such as:
+
+   * learning rate, architecture, number of layers, first layer units, dropout rate, L2 strength, optimizer, etc.
+   * validation AUC or other selected performance metrics.
+3. **Builds a tabular dataset** linking each run’s hyperparameters to its performance.
+4. **Computes sensitivity statistics**, for example:
+
+   * correlation or effect size of each hyperparameter with respect to validation AUC,
+   * simple regression or feature-importance over the hyperparameter space.
+5. **Generates visualizations** and summaries, such as:
+
+   * `hyperparameter_importance_bar.png` – bar plot ranking hyperparameters by their impact on validation AUC.
+   * `hyperparameter_sensitivity_summary.json` – JSON describing which hyperparameters matter most and their recommended ranges.
+
+This analysis explains:
+
+* Which hyperparameters have the **largest impact** on model performance.
+* How tuning **improved** the final model compared to baseline settings.
+* Which configuration choices are **most critical** to reproduce the reported results.
+
+Together, the SHAP-based feature importance analysis and the MLflow-based hyperparameter sensitivity form a complete **model sensitivity module**, increasing trust in the model and providing clear guidance for future retraining or extension of the HIMAS pipeline.
 
 ## Model Evaluation Visualizations
 
