@@ -1,0 +1,377 @@
+{
+  "timestamp": "2025-11-16T22:49:57.892188",
+  "model_path": "models/hyper-hospital_c/himas_federated_mortality_model_20251116_165239.keras",
+  "prediction_threshold": 0.5,
+  "total_samples": 12674,
+  "positive_samples": 1490,
+  "mortality_rate": 0.11756351585923938,
+  "fairness_metrics": {
+    "gender": {
+      "demographic_parity_difference": 0.028907729193708764,
+      "equalized_odds_difference": 0.025563022351353187
+    },
+    "age_group": {
+      "demographic_parity_difference": 0.14221909341767658,
+      "equalized_odds_difference": 0.10744617815524382
+    },
+    "insurance": {
+      "demographic_parity_difference": 0.22635877733523707,
+      "equalized_odds_difference": 0.21764705882352942
+    },
+    "race": {
+      "demographic_parity_difference": 0.5,
+      "equalized_odds_difference": 1.0
+    }
+  },
+  "metrics_by_slice": {
+    "gender": {
+      "F": {
+        "accuracy": 0.8417721518987342,
+        "recall": 0.8534107402031931,
+        "precision": 0.43171806167400884,
+        "f1": 0.5733788395904437
+      },
+      "M": {
+        "accuracy": 0.8667413213885778,
+        "recall": 0.8751560549313359,
+        "precision": 0.4513844172569221,
+        "f1": 0.5955819881053526
+      }
+    },
+    "age_group": {
+      "40-60": {
+        "accuracy": 0.8792717981475567,
+        "recall": 0.8433734939759037,
+        "precision": 0.3825136612021858,
+        "f1": 0.5263157894736842
+      },
+      "60-75": {
+        "accuracy": 0.8740998838559814,
+        "recall": 0.8802395209580839,
+        "precision": 0.47778981581798485,
+        "f1": 0.6193820224719101
+      },
+      "75+": {
+        "accuracy": 0.8111555777888945,
+        "recall": 0.8541973490427098,
+        "precision": 0.4692556634304207,
+        "f1": 0.6057441253263708
+      },
+      "<40": {
+        "accuracy": 0.8774193548387097,
+        "recall": 0.9508196721311475,
+        "precision": 0.28019323671497587,
+        "f1": 0.43283582089552236
+      }
+    },
+    "insurance": {
+      "Medicaid": {
+        "accuracy": 0.8826933193056287,
+        "recall": 0.7965116279069767,
+        "precision": 0.42153846153846153,
+        "f1": 0.5513078470824949
+      },
+      "Medicare": {
+        "accuracy": 0.8409058127794605,
+        "recall": 0.865979381443299,
+        "precision": 0.46332046332046334,
+        "f1": 0.6036651095939634
+      },
+      "No charge": {
+        "accuracy": 1.0,
+        "recall": 1.0,
+        "precision": 1.0,
+        "f1": 1.0
+      },
+      "Other": {
+        "accuracy": 0.8865671641791045,
+        "recall": 0.9666666666666667,
+        "precision": 0.4393939393939394,
+        "f1": 0.6041666666666666
+      },
+      "Private": {
+        "accuracy": 0.8706528370957901,
+        "recall": 0.8745247148288974,
+        "precision": 0.37037037037037035,
+        "f1": 0.5203619909502263
+      },
+      "Unknown": {
+        "accuracy": 0.8258928571428571,
+        "recall": 0.9629629629629629,
+        "precision": 0.5842696629213483,
+        "f1": 0.7272727272727273
+      }
+    },
+    "race": {
+      "AMERICAN INDIAN/ALASKA NATIVE": {
+        "accuracy": 0.967741935483871,
+        "recall": 1.0,
+        "precision": 0.8,
+        "f1": 0.8888888888888888
+      },
+      "ASIAN": {
+        "accuracy": 0.8648648648648649,
+        "recall": 0.782608695652174,
+        "precision": 0.5454545454545454,
+        "f1": 0.6428571428571429
+      },
+      "ASIAN - ASIAN INDIAN": {
+        "accuracy": 0.9230769230769231,
+        "recall": 0.0,
+        "precision": 0.0,
+        "f1": 0.0
+      },
+      "ASIAN - CHINESE": {
+        "accuracy": 0.8495575221238938,
+        "recall": 0.8333333333333334,
+        "precision": 0.4,
+        "f1": 0.5405405405405406
+      },
+      "ASIAN - KOREAN": {
+        "accuracy": 1.0,
+        "recall": 1.0,
+        "precision": 1.0,
+        "f1": 1.0
+      },
+      "ASIAN - SOUTH EAST ASIAN": {
+        "accuracy": 0.9230769230769231,
+        "recall": 1.0,
+        "precision": 0.4,
+        "f1": 0.5714285714285714
+      },
+      "BLACK/AFRICAN": {
+        "accuracy": 0.7894736842105263,
+        "recall": 1.0,
+        "precision": 0.4,
+        "f1": 0.5714285714285714
+      },
+      "BLACK/AFRICAN AMERICAN": {
+        "accuracy": 0.9012797074954296,
+        "recall": 0.831858407079646,
+        "precision": 0.5136612021857924,
+        "f1": 0.6351351351351351
+      },
+      "BLACK/CAPE VERDEAN": {
+        "accuracy": 0.8837209302325582,
+        "recall": 0.8,
+        "precision": 0.3076923076923077,
+        "f1": 0.4444444444444444
+      },
+      "BLACK/CARIBBEAN ISLAND": {
+        "accuracy": 0.9272727272727272,
+        "recall": 1.0,
+        "precision": 0.42857142857142855,
+        "f1": 0.6
+      },
+      "HISPANIC OR LATINO": {
+        "accuracy": 0.8793969849246231,
+        "recall": 0.85,
+        "precision": 0.4473684210526316,
+        "f1": 0.5862068965517241
+      },
+      "HISPANIC/LATINO - CENTRAL AMERICAN": {
+        "accuracy": 1.0,
+        "recall": 1.0,
+        "precision": 1.0,
+        "f1": 1.0
+      },
+      "HISPANIC/LATINO - COLUMBIAN": {
+        "accuracy": 0.5,
+        "recall": 0.0,
+        "precision": 0.0,
+        "f1": 0.0
+      },
+      "HISPANIC/LATINO - CUBAN": {
+        "accuracy": 0.7777777777777778,
+        "recall": 0.0,
+        "precision": 0.0,
+        "f1": 0.0
+      },
+      "HISPANIC/LATINO - DOMINICAN": {
+        "accuracy": 0.8863636363636364,
+        "recall": 0.8571428571428571,
+        "precision": 0.4,
+        "f1": 0.5454545454545454
+      },
+      "HISPANIC/LATINO - GUATEMALAN": {
+        "accuracy": 0.926829268292683,
+        "recall": 1.0,
+        "precision": 0.4,
+        "f1": 0.5714285714285714
+      },
+      "HISPANIC/LATINO - HONDURAN": {
+        "accuracy": 1.0,
+        "recall": 1.0,
+        "precision": 1.0,
+        "f1": 1.0
+      },
+      "HISPANIC/LATINO - MEXICAN": {
+        "accuracy": 0.9230769230769231,
+        "recall": 0.0,
+        "precision": 0.0,
+        "f1": 0.0
+      },
+      "HISPANIC/LATINO - PUERTO RICAN": {
+        "accuracy": 0.9134615384615384,
+        "recall": 0.9,
+        "precision": 0.5294117647058824,
+        "f1": 0.6666666666666666
+      },
+      "HISPANIC/LATINO - SALVADORAN": {
+        "accuracy": 0.9523809523809523,
+        "recall": 1.0,
+        "precision": 0.75,
+        "f1": 0.8571428571428571
+      },
+      "MULTIPLE RACE/ETHNICITY": {
+        "accuracy": 1.0,
+        "recall": 1.0,
+        "precision": 1.0,
+        "f1": 1.0
+      },
+      "NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER": {
+        "accuracy": 1.0,
+        "recall": 1.0,
+        "precision": 1.0,
+        "f1": 1.0
+      },
+      "OTHER": {
+        "accuracy": 0.8364928909952607,
+        "recall": 0.7608695652173914,
+        "precision": 0.3763440860215054,
+        "f1": 0.5035971223021583
+      },
+      "PATIENT DECLINED TO ANSWER": {
+        "accuracy": 0.8301886792452831,
+        "recall": 1.0,
+        "precision": 0.3076923076923077,
+        "f1": 0.47058823529411764
+      },
+      "PORTUGUESE": {
+        "accuracy": 0.8372093023255814,
+        "recall": 0.5,
+        "precision": 0.2857142857142857,
+        "f1": 0.36363636363636365
+      },
+      "SOUTH AMERICAN": {
+        "accuracy": 0.875,
+        "recall": 0.0,
+        "precision": 0.0,
+        "f1": 0.0
+      },
+      "UNABLE TO OBTAIN": {
+        "accuracy": 0.8494983277591973,
+        "recall": 0.8461538461538461,
+        "precision": 0.5432098765432098,
+        "f1": 0.6616541353383458
+      },
+      "UNKNOWN": {
+        "accuracy": 0.8564437194127243,
+        "recall": 0.8976377952755905,
+        "precision": 0.6031746031746031,
+        "f1": 0.7215189873417721
+      },
+      "WHITE": {
+        "accuracy": 0.8461347253293562,
+        "recall": 0.8658256880733946,
+        "precision": 0.40245202558635396,
+        "f1": 0.549490538573508
+      },
+      "WHITE - BRAZILIAN": {
+        "accuracy": 1.0,
+        "recall": 0.0,
+        "precision": 0.0,
+        "f1": 0.0
+      },
+      "WHITE - EASTERN EUROPEAN": {
+        "accuracy": 0.9230769230769231,
+        "recall": 0.5,
+        "precision": 0.3333333333333333,
+        "f1": 0.4
+      },
+      "WHITE - OTHER EUROPEAN": {
+        "accuracy": 0.868995633187773,
+        "recall": 0.9230769230769231,
+        "precision": 0.46153846153846156,
+        "f1": 0.6153846153846154
+      },
+      "WHITE - RUSSIAN": {
+        "accuracy": 0.8181818181818182,
+        "recall": 0.8333333333333334,
+        "precision": 0.3125,
+        "f1": 0.45454545454545453
+      }
+    }
+  },
+  "performance_gaps": {
+    "gender_accuracy_gap": 0.024969169489843623,
+    "gender_recall_gap": 0.021745314728142784,
+    "gender_precision_gap": 0.019666355582913242,
+    "gender_f1_gap": 0.0222031485149089,
+    "age_group_accuracy_gap": 0.06811622035866227,
+    "age_group_recall_gap": 0.10744617815524382,
+    "age_group_precision_gap": 0.19759657910300898,
+    "age_group_f1_gap": 0.18654620157638774,
+    "insurance_accuracy_gap": 0.1741071428571429,
+    "insurance_recall_gap": 0.20348837209302328,
+    "insurance_precision_gap": 0.6296296296296297,
+    "insurance_f1_gap": 0.4796380090497737,
+    "race_accuracy_gap": 0.5,
+    "race_recall_gap": 1.0,
+    "race_precision_gap": 1.0,
+    "race_f1_gap": 1.0
+  },
+  "bias_check": {
+    "bias_check_passed": false,
+    "max_demographic_parity": 0.5,
+    "max_equalized_odds": 1.0,
+    "thresholds": {
+      "demographic_parity": 0.1,
+      "equalized_odds": 0.1
+    },
+    "violations": [
+      {
+        "feature": "age_group",
+        "metric": "demographic_parity_difference",
+        "value": 0.14221909341767658,
+        "threshold": 0.1,
+        "severity": "medium"
+      },
+      {
+        "feature": "age_group",
+        "metric": "equalized_odds_difference",
+        "value": 0.10744617815524382,
+        "threshold": 0.1,
+        "severity": "medium"
+      },
+      {
+        "feature": "insurance",
+        "metric": "demographic_parity_difference",
+        "value": 0.22635877733523707,
+        "threshold": 0.1,
+        "severity": "high"
+      },
+      {
+        "feature": "insurance",
+        "metric": "equalized_odds_difference",
+        "value": 0.21764705882352942,
+        "threshold": 0.1,
+        "severity": "high"
+      },
+      {
+        "feature": "race",
+        "metric": "demographic_parity_difference",
+        "value": 0.5,
+        "threshold": 0.1,
+        "severity": "high"
+      },
+      {
+        "feature": "race",
+        "metric": "equalized_odds_difference",
+        "value": 1.0,
+        "threshold": 0.1,
+        "severity": "high"
+      }
+    ]
+  }
+}

@@ -16,6 +16,7 @@ from pathlib import Path
 from flwr.app import ArrayRecord, Context
 from flwr.serverapp import Grid, ServerApp
 from flwr.serverapp.strategy import FedAvg
+# from flwr.serverapp.strategy import DifferentialPrivacyServerSideFixedClipping  # DP disabled
 from himas_model_pipeline.task import (
     load_model, get_shared_hyperparameters,
     get_config_value, set_seed, load_hyperparameters
@@ -181,6 +182,47 @@ def main(grid: Grid, context: Context) -> None:
         min_available_nodes=2 #changed from 3 for testing with less clients
     )
 
+    # Apply Differential Privacy if enabled
+    # DP code commented out - not working properly
+    # enable_dp = context.run_config.get(
+    #     "enable-differential-privacy",
+    #     get_config_value('tool.flwr.app.config.enable-differential-privacy', False)
+    # )
+    # 
+    # # Initialize DP parameters (for metadata tracking)
+    # dp_noise_multiplier = None
+    # dp_clipping_norm = None
+    # dp_num_sampled_clients = None
+    # 
+    # if enable_dp:
+    #     dp_noise_multiplier = context.run_config.get(
+    #         "dp-noise-multiplier",
+    #         get_config_value('tool.flwr.app.config.dp-noise-multiplier', 1.0)
+    #     )
+    #     dp_clipping_norm = context.run_config.get(
+    #         "dp-clipping-norm",
+    #         get_config_value('tool.flwr.app.config.dp-clipping-norm', 2.0)
+    #     )
+    #     dp_num_sampled_clients = context.run_config.get(
+    #         "dp-num-sampled-clients",
+    #         get_config_value('tool.flwr.app.config.dp-num-sampled-clients', 3)
+    #     )
+    #     
+    #     strategy = DifferentialPrivacyServerSideFixedClipping(
+    #         strategy,
+    #         noise_multiplier=dp_noise_multiplier,
+    #         clipping_norm=dp_clipping_norm,
+    #         num_sampled_clients=dp_num_sampled_clients,
+    #     )
+    #     logger.info(f"Differential Privacy enabled:")
+    #     logger.info(f"  Noise multiplier: {dp_noise_multiplier}")
+    #     logger.info(f"  Clipping norm: {dp_clipping_norm}")
+    #     logger.info(f"  Sampled clients per round: {dp_num_sampled_clients}")
+    # else:
+    #     logger.info("Differential Privacy disabled")
+    
+    logger.info("Differential Privacy disabled")
+
     # Execute federated learning
     logger.info("="*70)
     logger.info(
@@ -245,7 +287,13 @@ def main(grid: Grid, context: Context) -> None:
         'total_parameters': total_params,
         'random_seed': seed,
         'project_id': project_id,
-        'dataset_id': dataset_id
+        'dataset_id': dataset_id,
+        'differential_privacy': {
+            'enabled': False,
+            # 'noise_multiplier': dp_noise_multiplier,
+            # 'clipping_norm': dp_clipping_norm,
+            # 'num_sampled_clients': dp_num_sampled_clients
+        }
     }
 
     metadata_path = models_save_dir / f"model_metadata_{timestamp}.json"

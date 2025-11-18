@@ -27,6 +27,7 @@ dependencies = [
     "matplotlib>=3.7.0",
     "seaborn>=0.13.0",
     "shap>=0.45.0",
+    "fairlearn>=0.10.0",  # Bias detection and fairness metrics
 ]
 
 [tool.hatch.build.targets.wheel]

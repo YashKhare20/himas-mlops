@@ -88,16 +88,16 @@ steps:
         fi
         echo "Metrics passed"
 
-  # - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
-  #   id: 'bias-detection'
-  #   entrypoint: 'bash'
-  #   args:
-  #     - '-c'
-  #     - |
-  #       cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/* /app/
-  #       cd /app
-  #       cp -r /workspace/evaluation_results .
-  #       python bias_detection.py
+  - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
+    id: 'bias-detection'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/* /app/
+        cd /app
+        cp -r /workspace/evaluation_results .
+        python bias_detection/bias_checker.py
 
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'compare-with-previous'
