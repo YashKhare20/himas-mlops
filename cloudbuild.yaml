@@ -1,4 +1,4 @@
-#CICD Pipeline
+#CICD Pipeline for Himas Federated Learning Model Training, Evaluation, and Registration
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-image'
