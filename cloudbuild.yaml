@@ -16,6 +16,8 @@ steps:
     env:
       - 'GCP_PROJECT_ID=$PROJECT_ID'
       - 'DATASET_ID=federated_demo'
+      - 'MLFLOW_TRACKING_URI=file:///workspace/mlruns'
+      - 'MLFLOW_EXPERIMENT_NAME=himas-federated-training'
     entrypoint: 'bash'
     args:
       - '-c'
@@ -45,6 +47,8 @@ steps:
     env:
       - 'GCP_PROJECT_ID=$PROJECT_ID'
       - 'DATASET_ID=federated_demo'
+      - 'MLFLOW_TRACKING_URI=file:///workspace/mlruns'
+      - 'MLFLOW_EXPERIMENT_NAME=himas-federated-eval'
     entrypoint: 'bash'
     args:
       - '-c'
@@ -53,10 +57,15 @@ steps:
         cd /app
         mkdir -p models
         cp /workspace/models/himas_federated_mortality_model.keras models/
+
+        cp -r /workspace/mlruns /app/ || echo "No mlruns from training"
+        
         rm -rf evaluation_results
         mkdir -p evaluation_results
         python scripts/evaluate_model.py
         cp -r evaluation_results /workspace/
+
+        cp -r /app/mlruns /workspace/ || echo "No mlruns folder found"
 
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'validate-metrics'
@@ -174,44 +183,91 @@ steps:
       - '/workspace/evaluation_results/'
       - 'gs://himas-mlops-models/evaluation-results/$BUILD_ID/'
 
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'upload-mlflow-artifacts'
+    args:
+      - '-m'
+      - 'cp'
+      - '-r'
+      - '/workspace/mlruns'
+      - 'gs://himas-mlops-models/mlflow-runs/$BUILD_ID/'
+
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
-    id: 'register-model-vertex'
+    id: 'register-model-in-registry'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         cd /workspace
         
-        # Read timestamp from previous step
+        # Read timestamp
         TIMESTAMP=$$(cat /workspace/model_timestamp.txt)
         echo "Using timestamp: $$TIMESTAMP"
 
-        # Get the SHA256 digest of the image
-        IMAGE_DIGEST=$$(gcloud container images describe gcr.io/$PROJECT_ID/himas-training:$BUILD_ID --format='get(image_summary.digest)')
-        echo "Using image digest: $$IMAGE_DIGEST"
-
-
+        # Get metrics
         LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
-        echo "Using metrics from: $$LATEST_JSON"
-
         ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
         REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
         PREC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .precision' $$LATEST_JSON)
+        F1=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .f1_score' $$LATEST_JSON)
+        AUC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .roc_auc' $$LATEST_JSON)
         
-        echo "Registering model in Vertex AI Model Registry..."
-        echo "Accuracy: $$ACC | Recall: $$REC | Precision: $$PREC"
+        echo "Registering model in Model Registry..."
+        echo "Metrics - Accuracy: $$ACC | Recall: $$REC | Precision: $$PREC"
         
-        # Use SHA256 digest instead of tag
-        gcloud ai models upload \
-          --region=us-central1 \
-          --display-name=himas-federated-mortality-model \
-          --description="Federated learning model for ICU mortality prediction - Build $BUILD_ID - $$TIMESTAMP" \
-          --artifact-uri=gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/ \
-          --container-image-uri=gcr.io/$PROJECT_ID/himas-training@$$IMAGE_DIGEST \
-          --version-aliases=build-$BUILD_ID,latest \
-          --project=$PROJECT_ID
+        # Create model registry entry (model card)
+        cat > model_card.json <<EOF
+        {
+          "model_info": {
+            "name": "himas-federated-mortality-model",
+            "version": "$BUILD_ID",
+            "timestamp": "$$TIMESTAMP",
+            "status": "production",
+            "registered_at": "$$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          },
+          "artifacts": {
+            "model_file": "gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/model.keras",
+            "container_image": "gcr.io/$PROJECT_ID/himas-training:$BUILD_ID",
+            "evaluation_results": "gs://himas-mlops-models/evaluation-results/$BUILD_ID/",
+            "mlflow_tracking": "gs://himas-mlops-models/mlflow-runs/$BUILD_ID/"
+          },
+          "performance_metrics": {
+            "accuracy": $$ACC,
+            "recall": $$REC,
+            "precision": $$PREC,
+            "f1_score": $$F1,
+            "roc_auc": $$AUC
+          },
+          "training_config": {
+            "framework": "tensorflow-keras",
+            "federated_framework": "flower",
+            "hospitals": ["hospital_a", "hospital_b", "hospital_c"],
+            "num_rounds": 15,
+            "local_epochs": 5,
+            "batch_size": 64
+          }
+        }
+        EOF
         
-        echo "✅ Model registered in Vertex AI Model Registry at gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/"
+        echo ""
+        echo "Model Registry Entry:"
+        cat model_card.json
+        echo ""
+        
+        # Upload to model registry in GCS
+        gsutil cp model_card.json \
+          gs://himas-mlops-models/model-registry/$${TIMESTAMP}_$BUILD_ID.json
+        
+        # Update latest pointer
+        echo "$${TIMESTAMP}_$BUILD_ID" > latest_model.txt
+        gsutil cp latest_model.txt gs://himas-mlops-models/model-registry/latest.txt
+        
+        echo ""
+        echo "✅ Model registered in Model Registry (GCS-based)"
+        echo "   Registry Entry: gs://himas-mlops-models/model-registry/$${TIMESTAMP}_$BUILD_ID.json"
+        echo "   Model Artifact: gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/model.keras"
+        echo "   Container Image: gcr.io/$PROJECT_ID/himas-training:$BUILD_ID"
+        echo "   Latest Model: gs://himas-mlops-models/model-registry/latest.txt"
 
 images:
   - 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
