@@ -1,0 +1,130 @@
+# =====================================================================
+# For a full TOML configuration guide, check the Flower docs:
+# https://flower.ai/docs/framework/how-to-configure-pyproject-toml.html
+# =====================================================================
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "himas-model-pipeline"
+version = "1.0.0"
+description = "Federated Learning for ICU Mortality Prediction"
+license = "Apache-2.0"
+dependencies = [
+    "flwr[simulation]>=1.23.0",
+    "flwr-datasets[vision]>=0.5.0",
+    "tensorflow>=2.11.1,<2.18.0",
+    "scikit-learn>=1.3.0",
+    "google-cloud-bigquery>=3.11.0",
+    "db-dtypes>=1.1.1",  # Required for BigQuery data types,
+    "keras-tuner>=1.4.0",
+    "toml>=0.10.2",
+    "fairlearn>=0.10.0",  # Bias detection and fairness metrics
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.flwr.app]
+publisher = "himas"
+
+[tool.flwr.app.components]
+serverapp = "himas_model_pipeline.server_app:app"
+clientapp = "himas_model_pipeline.client_app:app"
+
+[tool.flwr.app.config]
+num-server-rounds = 15
+local-epochs = 5
+batch-size = 64
+fraction-train = 1.0
+fraction-evaluate = 1.0
+verbose = 1
+random-seed = 42
+
+# Training callbacks (healthcare-specific optimization)
+use-early-stopping = true
+early-stopping-patience = 3
+early-stopping-monitor = "val_auc"
+use-reduce-lr = true
+reduce-lr-patience = 2
+reduce-lr-factor = 0.5
+reduce-lr-min = 1e-7
+
+# Validation during local training
+use-validation-data = true
+
+# Shared hyperparameters for federated learning (all hospitals use same architecture)
+# Use the best performing hyperparameters from Colab tuning across all hospitals
+shared-hyperparameters = "hyperparameters/hospital_c_best_hyperparameters.json"
+
+# Differential Privacy configuration
+# Note: Lower noise_multiplier (0.5-1.5) provides better utility while maintaining privacy
+# Higher values (30.0) completely destroy model performance
+# Clipping norm of 2.0-5.0 is more appropriate for neural network weights
+# enable-differential-privacy = true
+# dp-noise-multiplier = 1.2
+# dp-clipping-norm = 5.0
+# dp-num-sampled-clients = 3
+
+[tool.himas.data]
+# BigQuery configuration
+project-id = "erudite-carving-472018-r5"
+dataset-id = "federated"
+location = "US"
+
+# Hospital configuration
+num-hospitals = 3
+hospital-names = ["hospital_a", "hospital_b", "hospital_c"]
+
+# Feature configuration
+target-column = "icu_mortality_label"
+
+numerical-features = [
+    "age_at_admission", "los_icu_hours", "los_icu_days", "los_hospital_days",
+    "los_hospital_hours", "n_distinct_icu_units", "is_mixed_icu", "n_icu_transfers",
+    "n_total_transfers", "ed_admission_flag", "emergency_admission_flag",
+    "hours_admit_to_icu", "early_icu_score", "weekend_admission", "night_admission"
+]
+
+categorical-features = [
+    "icu_type", "first_careunit", "admission_type", "admission_location",
+    "insurance", "gender", "race", "marital_status"
+]
+
+excluded-columns = [
+    "stay_id", "subject_id", "hadm_id", "icu_intime", "icu_outtime",
+    "deathtime", "death_date", "assigned_hospital", "data_split"
+]
+
+# Data splits
+train-split = "train"
+validation-split = "validation"
+test-split = "test"
+
+[tool.himas.model]
+# Default model architecture
+num-layers = 4
+architecture = "decreasing"
+first-layer-units = 256
+activation = "relu"
+dropout-rate = 0.3
+l2-strength = 0.001
+learning-rate = 0.001
+optimizer = "adam"
+
+# Prediction threshold for clinical deployment
+# Run optimize_threshold.py to find optimal value
+prediction-threshold = 0.5
+
+[tool.himas.paths]
+models-dir = "models"
+eval-model-dir = "hyper-hospital_c"
+evaluation-dir = "evaluation_results"
+
+[tool.flwr.federations]
+default = "local-simulation"
+
+[tool.flwr.federations.local-simulation]
+options.num-supernodes = 3

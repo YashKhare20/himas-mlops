@@ -1,0 +1,111 @@
+{
+  "evaluation_timestamp": "2025-11-14T00:25:15.076991",
+  "model_path": "models/hyper-hospital_a/himas_federated_mortality_model_20251113_213246.keras",
+  "prediction_threshold": 0.5,
+  "hyperparameters_path": "hyperparameters/hospital_a_best_hyperparameters.json",
+  "hyperparameters": {
+    "num_layers": 5,
+    "architecture": "decreasing",
+    "first_layer_units": 512,
+    "activation": "selu",
+    "dropout_rate": 0.1,
+    "l2_strength": 3.390566307018299e-05,
+    "learning_rate": 0.007730803011942476,
+    "optimizer": "rmsprop"
+  },
+  "configuration": {
+    "project_id": "erudite-carving-472018-r5",
+    "dataset_id": "federated",
+    "hospitals": [
+      "hospital_a",
+      "hospital_b",
+      "hospital_c"
+    ]
+  },
+  "metrics_by_hospital": [
+    {
+      "hospital": "hospital_a",
+      "threshold": 0.5,
+      "n_samples": 5059,
+      "n_deaths": 593,
+      "prevalence": 0.11721684127297885,
+      "accuracy": 0.8555050405218423,
+      "precision": 0.44051724137931036,
+      "recall": 0.8617200674536256,
+      "f1_score": 0.583000570450656,
+      "roc_auc": 0.9267752076962985,
+      "average_precision": 0.7041695256581028,
+      "confusion_matrix": {
+        "tn": 3817,
+        "fp": 649,
+        "fn": 82,
+        "tp": 511
+      },
+      "specificity": 0.854679802955665,
+      "npv": 0.9789689664016414
+    },
+    {
+      "hospital": "hospital_b",
+      "threshold": 0.5,
+      "n_samples": 4378,
+      "n_deaths": 538,
+      "prevalence": 0.12288716308816812,
+      "accuracy": 0.8618090452261307,
+      "precision": 0.4670599803343166,
+      "recall": 0.8828996282527881,
+      "f1_score": 0.6109324758842444,
+      "roc_auc": 0.9363620082094176,
+      "average_precision": 0.71738638352313,
+      "confusion_matrix": {
+        "tn": 3298,
+        "fp": 542,
+        "fn": 63,
+        "tp": 475
+      },
+      "specificity": 0.8588541666666667,
+      "npv": 0.9812555786968165
+    },
+    {
+      "hospital": "hospital_c",
+      "threshold": 0.5,
+      "n_samples": 3237,
+      "n_deaths": 359,
+      "prevalence": 0.11090515909793018,
+      "accuracy": 0.8449181340747606,
+      "precision": 0.4060446780551905,
+      "recall": 0.8607242339832869,
+      "f1_score": 0.5517857142857143,
+      "roc_auc": 0.9230189256311931,
+      "average_precision": 0.661909377124699,
+      "confusion_matrix": {
+        "tn": 2426,
+        "fp": 452,
+        "fn": 50,
+        "tp": 309
+      },
+      "specificity": 0.842946490618485,
+      "npv": 0.9798061389337641
+    },
+    {
+      "hospital": "AGGREGATED",
+      "threshold": 0.5,
+      "n_samples": 12674,
+      "n_deaths": 1490,
+      "prevalence": 0.11756351585923938,
+      "accuracy": 0.8549786965441061,
+      "precision": 0.4407760381211709,
+      "recall": 0.8691275167785235,
+      "f1_score": 0.5849141824751581,
+      "roc_auc": 0.9291838292479189,
+      "average_precision": 0.69663629184246,
+      "confusion_matrix": {
+        "tn": 9541,
+        "fp": 1643,
+        "fn": 195,
+        "tp": 1295
+      },
+      "specificity": 0.8530937052932761,
+      "npv": 0.9799712407559573
+    }
+  ]
+}
