@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   # -------------------------
   # MLflow Tracking Server
@@ -9,10 +11,20 @@ services:
     container_name: himas-mlflow
     restart: unless-stopped
     working_dir: /app
-    volumes:
-      - ./mlruns:/mlruns
     ports:
-      - "5001:5000"
+      - "5000:5000"
+    volumes:
+      # Backend store (runs / params / metrics DB) under /app/mlflow
+      - ./mlflow:/app/mlflow
+      # Artifact store (plots, JSONs, models, etc.) under /mlruns
+      - ./mlruns:/mlruns
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri sqlite:///mlflow/mlflow.db
+        --artifacts-destination file:/mlruns
+        --serve-artifacts
 
   # -------------------------
   # Flower SuperLink (router + ServerApp subprocess)
@@ -25,8 +37,6 @@ services:
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - MLFLOW_EXPERIMENT_NAME=himas-federated
-      # ServerApp is discovered via pyproject.toml (tool.flwr.app.components)
-
       # BigQuery / GCP (only needed if ServerApp ever touches BQ; safe to include)
       - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
       - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
@@ -39,7 +49,7 @@ services:
       # - "9093:9093"
     volumes:
       # Mount host gcloud ADC into the default path inside the container
-      - /Users/mgmanjusha/.config/gcloud
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
 
   # -------------------------
   # Federated Clients (Hospitals A/B/C)
@@ -57,7 +67,6 @@ services:
       - FLOWER_NUM_PARTITIONS=3
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - MLFLOW_EXPERIMENT_NAME=himas-federated
-
       # BigQuery / GCP (ADC)
       - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
       - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
@@ -67,7 +76,7 @@ services:
         --superlink superlink:9092
         --node-config "partition-id=0 num-partitions=3"
     volumes:
-      - /Users/mgmanjusha/.config/gcloud
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
 
   supernode-b:
     build: .
@@ -82,7 +91,6 @@ services:
       - FLOWER_NUM_PARTITIONS=3
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - MLFLOW_EXPERIMENT_NAME=himas-federated
-
       # BigQuery / GCP (ADC)
       - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
       - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
@@ -92,8 +100,7 @@ services:
         --superlink superlink:9092
         --node-config "partition-id=1 num-partitions=3"
     volumes:
-      - /Users/mgmanjusha/.config/gcloud
-
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
 
   supernode-c:
     build: .
@@ -108,7 +115,6 @@ services:
       - FLOWER_NUM_PARTITIONS=3
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - MLFLOW_EXPERIMENT_NAME=himas-federated
-
       # BigQuery / GCP (ADC)
       - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
       - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
@@ -118,7 +124,7 @@ services:
         --superlink superlink:9092
         --node-config "partition-id=2 num-partitions=3"
     volumes:
-      - /Users/mgmanjusha/.config/gcloud
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
 
   # -------------------------
   # Evaluator (Post-training eval using MLflow + BigQuery)
@@ -131,7 +137,6 @@ services:
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - MLFLOW_EXPERIMENT_NAME=himas-federated-eval
-
       # BigQuery / GCP (ADC)
       - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
       - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
@@ -143,11 +148,12 @@ services:
     volumes:
       # So evaluate_model.py can see the trained .keras file(s)
       - ./models:/app/models
-      # Persist evaluation output on host
+      # Persist evaluation output on host (what you see in VS Code)
       - ./evaluation_results:/app/evaluation_results
-
+      # Share artifact root with MLflow server (nice for consistency)
+      - ./mlruns:/mlruns
       # Mount ADC config
-      - /Users/mgmanjusha/.config/gcloud
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
 
 networks:
   default:
