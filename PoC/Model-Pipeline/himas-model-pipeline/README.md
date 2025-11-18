@@ -586,7 +586,7 @@ For each evaluation run, MLflow stores the following artifacts under the run’s
   * per-hospital metrics
   * aggregated metrics across all hospitals
 
-![mlflow-ui](image-1.png)
+![mlflow-ui](mlflow.png)
 
 This layout mirrors the on-disk directory structure under `evaluation_results/` so that results can be inspected either locally or via the MLflow UI.
 
