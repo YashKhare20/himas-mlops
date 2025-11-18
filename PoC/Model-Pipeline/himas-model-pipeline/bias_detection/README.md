@@ -28,64 +28,56 @@ This document describes the comprehensive bias detection and mitigation system i
 
 ## Compliance with Model Development Guidelines
 
-### Section 2.4: Model Bias Detection (Using Slicing Techniques) ✅
-
+### Section 2.4: Model Bias Detection (Using Slicing Techniques) 
 **Requirement**: Evaluate model across different slices of data, such as demographic groups, to detect bias using tools like Fairlearn or TFMA.
 
 **Implementation**:
-- ✅ **Data Slicing**: Implemented demographic slicing across 4 dimensions:
+-  **Data Slicing**: Implemented demographic slicing across 4 dimensions:
   - Gender (Male, Female)
   - Age Groups (<40, 40-60, 60-75, 75+)
   - Insurance Type (Medicare, Medicaid, Private, Other, Unknown)
   - Race/Ethnicity (Multiple categories)
-- ✅ **Tool Selection**: Fairlearn 0.10.0+ for industry-standard fairness metrics
-- ✅ **Automated Analysis**: `detect_bias.py` performs comprehensive slicing automatically
+-  **Tool Selection**: Fairlearn 0.10.0+ for industry-standard fairness metrics
+-  **Automated Analysis**: `detect_bias.py` performs comprehensive slicing automatically
 
-### Section 2.5: Code to Check for Bias ✅
-
+### Section 2.5: Code to Check for Bias 
 **Requirement**: Include functionality for running bias checks across different slices and generate reports on performance disparities.
 
 **Implementation**:
-- ✅ **Bias Detection Script**: `bias_detection/detect_bias.py` - Standalone bias analysis
-- ✅ **Comprehensive Reports**: JSON reports with:
+-  **Bias Detection Script**: `bias_detection/detect_bias.py` - Standalone bias analysis
+-  **Comprehensive Reports**: JSON reports with:
   - Fairness metrics per demographic group
   - Performance metrics (accuracy, recall, precision, F1) per slice
   - Bias violations with severity classification
   - Threshold compliance status
-- ✅ **Mitigation Suggestions**: Code structure supports post-processing mitigation strategies
+-  **Mitigation Suggestions**: Code structure supports post-processing mitigation strategies
 
-### Section 6: Model Bias Detection (Detailed Requirements) ✅
+### Section 6: Model Bias Detection (Detailed Requirements) 
+#### 6.1: Perform Slicing -  Dataset broken down by meaningful demographic slices
+-  Age groups created from continuous age data
+-  All demographic features preserved during data loading
 
-#### 6.1: Perform Slicing ✅
-- ✅ Dataset broken down by meaningful demographic slices
-- ✅ Age groups created from continuous age data
-- ✅ All demographic features preserved during data loading
+#### 6.2: Track Metrics Across Slices -  Key metrics tracked per slice: accuracy, recall, precision, F1-score
+-  Fairness metrics: Demographic Parity Difference, Equalized Odds Difference
+-  Performance gaps identified and reported
 
-#### 6.2: Track Metrics Across Slices ✅
-- ✅ Key metrics tracked per slice: accuracy, recall, precision, F1-score
-- ✅ Fairness metrics: Demographic Parity Difference, Equalized Odds Difference
-- ✅ Performance gaps identified and reported
+#### 6.3: Bias Mitigation -  **Post-processing Mitigation**: Threshold optimization framework implemented
+-  **Pre-processing Support**: Code structure supports re-weighting and re-sampling
+-  **Documentation**: This document and code comments explain mitigation approaches
 
-#### 6.3: Bias Mitigation ✅
-- ✅ **Post-processing Mitigation**: Threshold optimization framework implemented
-- ✅ **Pre-processing Support**: Code structure supports re-weighting and re-sampling
-- ✅ **Documentation**: This document and code comments explain mitigation approaches
+#### 6.4: Document Bias Mitigation -  Comprehensive documentation in this file
+-  Code comments explain bias detection logic
+-  Results documented with trade-offs explained
 
-#### 6.4: Document Bias Mitigation ✅
-- ✅ Comprehensive documentation in this file
-- ✅ Code comments explain bias detection logic
-- ✅ Results documented with trade-offs explained
-
-### Section 7.3: Automated Model Bias Detection ✅
-
+### Section 7.3: Automated Model Bias Detection 
 **Requirement**: CI/CD pipeline should perform bias detection across data slices, log results, and trigger alerts/blocks for significant bias.
 
 **Implementation**:
-- ✅ **Bias Checker Script**: `bias_detection/bias_checker.py` - CI/CD gate
-- ✅ **Exit Codes**: Returns 0 (pass) or 1 (fail) for pipeline integration
-- ✅ **Automated Integration**: `evaluate_model.py` supports `--run-bias-detection` flag
-- ✅ **Results Logging**: Bias results saved to `bias_detection_results/reports/`
-- ✅ **Deployment Blocking**: Bias violations prevent model deployment
+-  **Bias Checker Script**: `bias_detection/bias_checker.py` - CI/CD gate
+-  **Exit Codes**: Returns 0 (pass) or 1 (fail) for pipeline integration
+-  **Automated Integration**: `evaluate_model.py` supports `--run-bias-detection` flag
+-  **Results Logging**: Bias results saved to `bias_detection_results/reports/`
+-  **Deployment Blocking**: Bias violations prevent model deployment
 
 ---
 
@@ -99,7 +91,7 @@ bias_detection/
 ├── detect_bias.py              # Main bias detection script
 ├── bias_checker.py             # CI/CD gate script
 ├── utils.py                    # Helper functions for data loading
-└── BIAS_DETECTION.md           # This documentation file
+└── README.md                   # This documentation file
 ```
 
 ### Core Components
@@ -244,20 +236,20 @@ For each demographic slice, the following metrics are computed:
 
 ### Fairness Metrics Results
 
-#### Overall Bias Status: **FAILED** ❌
+#### Overall Bias Status: **FAILED**
 
 | Demographic Feature | Demographic Parity | Equalized Odds | Status |
 |---------------------|-------------------|----------------|--------|
-| **Gender** | 0.029 | 0.026 | ✅ **PASS** |
-| **Age Group** | 0.142 | 0.107 | ❌ **FAIL** |
-| **Insurance** | 0.226 | 0.218 | ❌ **FAIL** |
-| **Race** | 0.500 | 1.000 | ❌ **FAIL** |
+| **Gender** | 0.029 | 0.026 |  **PASS** |
+| **Age Group** | 0.142 | 0.107 | **FAIL** |
+| **Insurance** | 0.226 | 0.218 | **FAIL** |
+| **Race** | 0.500 | 1.000 | **FAIL** |
 
 **Threshold**: Both metrics must be < 0.1 to pass
 
 ### Detailed Findings
 
-#### 1. Gender Bias: ✅ **PASSING**
+#### 1. Gender Bias:  **PASSING**
 
 - **Demographic Parity**: 0.029 (2.9% difference)
 - **Equalized Odds**: 0.026 (2.6% difference)
@@ -269,7 +261,7 @@ For each demographic slice, the following metrics are computed:
 
 **Conclusion**: Model shows minimal gender bias. Performance is relatively equitable across genders.
 
-#### 2. Age Group Bias: ❌ **FAILING**
+#### 2. Age Group Bias: **FAILING**
 
 - **Demographic Parity**: 0.142 (14.2% difference) - **Exceeds threshold**
 - **Equalized Odds**: 0.107 (10.7% difference) - **Exceeds threshold**
@@ -288,7 +280,7 @@ For each demographic slice, the following metrics are computed:
 
 **Severity**: Medium (exceeds threshold but not extreme)
 
-#### 3. Insurance Bias: ❌ **FAILING** (HIGH SEVERITY)
+#### 3. Insurance Bias: **FAILING** (HIGH SEVERITY)
 
 - **Demographic Parity**: 0.226 (22.6% difference) - **2.3× threshold**
 - **Equalized Odds**: 0.218 (21.8% difference) - **2.2× threshold**
@@ -309,7 +301,7 @@ For each demographic slice, the following metrics are computed:
 
 **Impact**: Low-income patients (Medicaid) may receive less accurate mortality predictions, potentially affecting care quality.
 
-#### 4. Race/Ethnicity Bias: ❌ **FAILING** (EXTREME SEVERITY)
+#### 4. Race/Ethnicity Bias: **FAILING** (EXTREME SEVERITY)
 
 - **Demographic Parity**: 0.500 (50.0% difference) - **5× threshold**
 - **Equalized Odds**: 1.000 (100% difference) - **10× threshold**
@@ -344,7 +336,7 @@ For each demographic slice, the following metrics are computed:
 5. **Race - Demographic Parity**: 0.500 (High severity)
 6. **Race - Equalized Odds**: 1.000 (High severity)
 
-**Deployment Status**: ❌ **BLOCKED** - Model fails bias checks
+**Deployment Status**: **BLOCKED** - Model fails bias checks
 
 ---
 
@@ -551,12 +543,11 @@ python bias_detection/bias_checker.py \
 
 ### Interpreting Results
 
-#### Bias Check Passed ✅
-- All fairness metrics below thresholds
+#### Bias Check Passed - All fairness metrics below thresholds
 - Model can proceed to deployment
 - No violations reported
 
-#### Bias Check Failed ❌
+#### Bias Check Failed
 - One or more fairness metrics exceed thresholds
 - Violations listed with severity
 - Model deployment should be blocked
