@@ -1,0 +1,22 @@
+#Notifications
+displayName: "HIMAS Pipeline Alerts"
+documentation:
+  content: "Alert for Cloud Build pipeline status (success/failure/timeout)"
+  mimeType: "text/markdown"
+combiner: OR
+conditions:
+  - displayName: "Cloud Build Status Alert"
+    conditionMatchedLog:
+      filter: |
+        resource.type="build"
+        protoPayload.serviceName="cloudbuild.googleapis.com"
+        (protoPayload.status.message="SUCCESS" OR 
+         protoPayload.status.message="FAILURE" OR 
+         protoPayload.status.message="TIMEOUT")
+notificationChannels:
+  - projects/erudite-carving-472018-r5/notificationChannels/8376955943997537663
+alertStrategy:
+  autoClose: 604800s
+  notificationRateLimit:
+    period: 300s
+enabled: true

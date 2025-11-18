@@ -1,0 +1,160 @@
+version: "3.9"
+
+services:
+  # -------------------------
+  # MLflow Tracking Server
+  # -------------------------
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: himas-mlflow
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "5000:5000"
+    volumes:
+      # Backend store (runs / params / metrics DB) under /app/mlflow
+      - ./mlflow:/app/mlflow
+      # Artifact store (plots, JSONs, models, etc.) under /mlruns
+      - ./mlruns:/mlruns
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri sqlite:///mlflow/mlflow.db
+        --artifacts-destination file:/mlruns
+        --serve-artifacts
+
+  # -------------------------
+  # Flower SuperLink (router + ServerApp subprocess)
+  # -------------------------
+  superlink:
+    build: .
+    container_name: himas-superlink
+    depends_on:
+      - mlflow
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_EXPERIMENT_NAME=himas-federated
+      # BigQuery / GCP (only needed if ServerApp ever touches BQ; safe to include)
+      - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
+      - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
+    command: >
+      flower-superlink
+        --insecure
+    ports:
+      - "9092:9092"
+      # Optional: expose control API if you ever need it
+      # - "9093:9093"
+    volumes:
+      # Mount host gcloud ADC into the default path inside the container
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
+
+  # -------------------------
+  # Federated Clients (Hospitals A/B/C)
+  # -------------------------
+  supernode-a:
+    build: .
+    container_name: himas-supernode-a
+    depends_on:
+      - superlink
+      - mlflow
+    environment:
+      - FLWR_SUPERLINK=superlink:9092
+      - FLOWER_NODE_ID=hospital-a
+      - FLOWER_PARTITION_ID=0
+      - FLOWER_NUM_PARTITIONS=3
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_EXPERIMENT_NAME=himas-federated
+      # BigQuery / GCP (ADC)
+      - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
+      - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
+    command: >
+      flower-supernode
+        --insecure
+        --superlink superlink:9092
+        --node-config "partition-id=0 num-partitions=3"
+    volumes:
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
+
+  supernode-b:
+    build: .
+    container_name: himas-supernode-b
+    depends_on:
+      - superlink
+      - mlflow
+    environment:
+      - FLWR_SUPERLINK=superlink:9092
+      - FLOWER_NODE_ID=hospital-b
+      - FLOWER_PARTITION_ID=1
+      - FLOWER_NUM_PARTITIONS=3
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_EXPERIMENT_NAME=himas-federated
+      # BigQuery / GCP (ADC)
+      - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
+      - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
+    command: >
+      flower-supernode
+        --insecure
+        --superlink superlink:9092
+        --node-config "partition-id=1 num-partitions=3"
+    volumes:
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
+
+  supernode-c:
+    build: .
+    container_name: himas-supernode-c
+    depends_on:
+      - superlink
+      - mlflow
+    environment:
+      - FLWR_SUPERLINK=superlink:9092
+      - FLOWER_NODE_ID=hospital-c
+      - FLOWER_PARTITION_ID=2
+      - FLOWER_NUM_PARTITIONS=3
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_EXPERIMENT_NAME=himas-federated
+      # BigQuery / GCP (ADC)
+      - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
+      - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
+    command: >
+      flower-supernode
+        --insecure
+        --superlink superlink:9092
+        --node-config "partition-id=2 num-partitions=3"
+    volumes:
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
+
+  # -------------------------
+  # Evaluator (Post-training eval using MLflow + BigQuery)
+  # -------------------------
+  evaluator:
+    build: .
+    container_name: himas-evaluator
+    depends_on:
+      - mlflow
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_EXPERIMENT_NAME=himas-federated-eval
+      # BigQuery / GCP (ADC)
+      - GOOGLE_CLOUD_PROJECT=erudite-carving-472018-r5
+      - GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
+    command: >
+      bash -c "
+        sleep 30 &&
+        python scripts/evaluate_model.py
+      "
+    volumes:
+      # So evaluate_model.py can see the trained .keras file(s)
+      - ./models:/app/models
+      # Persist evaluation output on host (what you see in VS Code)
+      - ./evaluation_results:/app/evaluation_results
+      # Share artifact root with MLflow server (nice for consistency)
+      - ./mlruns:/mlruns
+      # Mount ADC config
+      - "C:/Users/MargiShah/AppData/Roaming/gcloud:/root/.config/gcloud:ro"
+
+networks:
+  default:
+    name: himas-model-pipeline_default

@@ -68,6 +68,15 @@ from sklearn.metrics import (
     roc_curve, precision_recall_curve
 )
 
+import os
+import mlflow
+from mlflow.tracking import MlflowClient  # <-- NEW
+
+_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "file:./mlruns")
+_MLFLOW_EXP = os.getenv("MLFLOW_EXPERIMENT_NAME", "himas-federated-eval")
+mlflow.set_tracking_uri(_MLFLOW_URI)
+mlflow.set_experiment(_MLFLOW_EXP)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -162,7 +171,6 @@ def load_hyperparameters_metadata() -> Optional[Dict]:
 # Load configuration constants
 PROJECT_ID = get_config_value('tool.himas.data.project-id')
 DATASET_ID = get_config_value('tool.himas.data.dataset-id', 'federated')
-MODEL_PATH = get_latest_model_path()
 HOSPITALS = get_config_value(
     'tool.himas.data.hospital-names', ['hospital_a', 'hospital_b', 'hospital_c'])
 NUMERICAL_FEATURES = get_config_value('tool.himas.data.numerical-features')
@@ -649,7 +657,7 @@ class ModelEvaluator:
         plt.legend(fontsize=10, loc='lower right')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
-        plt.savefig(save_dir / 'roc_curves.png', dpi=300, bbox_inches='tight')
+        plt.savefig(save_dir / 'roc_curves.png', dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [1/6] ROC curves saved")
 
@@ -662,18 +670,26 @@ class ModelEvaluator:
             precision, recall, _ = precision_recall_curve(
                 data['y_test'], data['y_pred_proba'])
             ap = average_precision_score(data['y_test'], data['y_pred_proba'])
-            plt.plot(recall, precision,
-                     label=f'{hospital.replace("_", " ").title()} (AP={ap:.3f})', linewidth=2)
+            plt.plot(
+                recall,
+                precision,
+                label=f'{hospital.replace("_", " ").title()} (AP={ap:.3f})',
+                linewidth=2,
+            )
 
         plt.xlabel('Recall', fontsize=12)
         plt.ylabel('Precision', fontsize=12)
         plt.title('Precision-Recall Curves - ICU Mortality Prediction',
                   fontsize=14, fontweight='bold')
+
+        plt.xlim(0.0, 1.0)
+        plt.ylim(0.0, 1.0)
+
         plt.legend(fontsize=10, loc='lower left')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(save_dir / 'precision_recall_curves.png',
-                    dpi=300, bbox_inches='tight')
+                    dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [2/6] Precision-Recall curves saved")
 
@@ -696,7 +712,7 @@ class ModelEvaluator:
 
         plt.tight_layout()
         plt.savefig(
-            save_dir / 'confusion_matrices.png', dpi=300, bbox_inches='tight')
+            save_dir / 'confusion_matrices.png', dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [3/6] Confusion matrices saved")
 
@@ -730,7 +746,7 @@ class ModelEvaluator:
         plt.grid(True, alpha=0.3, axis='y')
         plt.tight_layout()
         plt.savefig(
-            save_dir / 'metrics_comparison.png', dpi=300, bbox_inches='tight')
+            save_dir / 'metrics_comparison.png', dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [4/6] Metrics comparison saved")
 
@@ -759,7 +775,7 @@ class ModelEvaluator:
 
         plt.tight_layout()
         plt.savefig(
-            save_dir / 'prediction_distribution.png', dpi=300, bbox_inches='tight')
+            save_dir / 'prediction_distribution.png', dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [5/6] Prediction distribution saved")
 
@@ -795,7 +811,7 @@ class ModelEvaluator:
 
         plt.tight_layout()
         plt.savefig(save_dir / 'calibration_curves.png',
-                    dpi=300, bbox_inches='tight')
+                    dpi=120, bbox_inches='tight')
         plt.close()
         logger.info("  [6/6] Calibration curves saved")
 
@@ -911,49 +927,115 @@ def main():
     """
     args = parse_args()
 
-    # Determine threshold from args, config, or default
+    # 1) Decide threshold
     if args.threshold is not None:
         threshold = args.threshold
         logger.info(f"Using threshold from command line: {threshold}")
     else:
-        threshold = get_config_value(
-            'tool.himas.model.prediction-threshold', 0.5)
+        threshold = get_config_value("tool.himas.model.prediction-threshold", 0.5)
         logger.info(f"Using threshold from configuration: {threshold}")
 
     # Validate threshold
     if not 0.0 <= threshold <= 1.0:
-        raise ValueError(
-            f"Threshold must be between 0.0 and 1.0, got {threshold}")
+        raise ValueError(f"Threshold must be between 0.0 and 1.0, got {threshold}")
 
-    logger.info("="*70)
+    # 2) Find latest model
+    model_path = get_latest_model_path()
+
+    logger.info("=" * 70)
     logger.info("HIMAS FEDERATED MODEL EVALUATION")
-    logger.info("="*70)
-    logger.info(f"Model: {MODEL_PATH}")
+    logger.info("=" * 70)
+    logger.info(f"Model: {model_path}")
     logger.info(f"Threshold: {threshold}")
-    logger.info("="*70)
+    logger.info("=" * 70)
 
-    # Initialize evaluator
-    evaluator = ModelEvaluator(MODEL_PATH, PROJECT_ID, threshold)
+    run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # Load model and hyperparameters
-    evaluator.load_model_and_config()
+    with mlflow.start_run(run_name=f"evaluation_{run_ts}") as run:
+        # --- debug: confirm URIs ---
+        client = MlflowClient()
+        run_info = client.get_run(run.info.run_id).info
+        logger.info(f"Tracking URI: {mlflow.get_tracking_uri()}")
+        logger.info(f"Artifact URI for this run: {run_info.artifact_uri}")
 
-    # CRITICAL: Fit preprocessor on training data first
-    evaluator.fit_preprocessor_on_training_data()
+        # Tags / params
+        mlflow.set_tags({"role": "evaluator", "phase": "evaluation"})
+        mlflow.log_params(
+            {
+                "evaluation_threshold": float(threshold),
+                "model_path": str(model_path),
+                "project_id": str(PROJECT_ID),
+                "dataset_id": str(DATASET_ID),
+            }
+        )
 
-    # Evaluate on test data (using fitted preprocessor)
-    metrics = evaluator.evaluate_all_hospitals()
+        # ---------------- Core evaluation workflow ----------------
+        evaluator = ModelEvaluator(model_path, PROJECT_ID, threshold)
 
-    # Generate visualizations
-    evaluator.generate_visualizations()
+        # 3) Load model + hyperparams
+        evaluator.load_model_and_config()
 
-    # Save results
-    evaluator.save_results(metrics)
+        # 4) Fit preprocessor on TRAIN data only
+        evaluator.fit_preprocessor_on_training_data()
 
-    logger.info("="*70)
+        # 5) Evaluate on test data
+        metrics = evaluator.evaluate_all_hospitals()
+
+        # 6) Visualizations + JSON
+        evaluator.generate_visualizations()
+        evaluator.generate_visualizations()
+
+        # Save results
+        evaluator.generate_visualizations()
+
+        # Save results
+        evaluator.save_results(metrics)
+
+        # ---------------- Log metrics to MLflow ----------------
+        numeric_keys = {
+            "n_samples",
+            "n_deaths",
+            "prevalence",
+            "accuracy",
+            "precision",
+            "recall",
+            "f1_score",
+            "roc_auc",
+            "average_precision",
+            "specificity",
+            "npv",
+        }
+
+        for m in metrics:
+            prefix = str(m.get("hospital", "unknown")).lower()
+            for k in numeric_keys:
+                if k in m and isinstance(m[k], (int, float)):
+                    mlflow.log_metric(f"{prefix}_{k}", float(m[k]))
+            if "threshold" in m:
+                mlflow.log_metric(f"{prefix}_threshold", float(m["threshold"]))
+
+        # ---------------- Log artifacts to MLflow ----------------
+        figs_dir = evaluator.output_dir / "figures"
+        res_dir = evaluator.output_dir / "results"
+
+        if figs_dir.exists():
+            logger.info(f"Logging figures from {figs_dir} to MLflow")
+            mlflow.log_artifacts(str(figs_dir), artifact_path="figures")
+        else:
+            logger.warning(f"Figures directory not found: {figs_dir}")
+
+        if res_dir.exists():
+            logger.info(f"Logging results from {res_dir} to MLflow")
+            mlflow.log_artifacts(str(res_dir), artifact_path="results")
+        else:
+            logger.warning(f"Results directory not found: {res_dir}")
+
+        logger.info(f"Finished MLflow run: {run.info.run_id}")
+
+    logger.info("=" * 70)
     logger.info("EVALUATION COMPLETED SUCCESSFULLY")
     logger.info(f"Results directory: {evaluator.output_dir}")
-    logger.info("="*70)
+    logger.info("=" * 70)
 
     # Run bias detection if requested
     if args.run_bias_detection:

@@ -1,0 +1,35 @@
+# Git / VCS
+.git
+.gitignore
+
+# Local virtualenvs
+.venv*/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+build/
+develop-eggs/
+dist/
+
+# Big local artifacts / generated stuff
+models/
+mlruns/
+evaluation_results/
+data/
+datasets/
+.notebooks/
+logs/
+.flwr/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,16 @@
+# Dockerfile.mlflow
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install MLflow (same version as the rest of the stack)
+RUN pip install --no-cache-dir mlflow==2.16.0
+
+# Single directory for both backend store (sqlite) and artifacts
+RUN mkdir -p /mlruns && chmod -R 777 /mlruns
+
+EXPOSE 5000
+
+# IMPORTANT: --artifacts-destination must be a plain path, not file:// URI
+CMD ["mlflow", "server", "--backend-store-uri", "sqlite:////mlruns/mlflow.db", "--serve-artifacts", "--artifacts-destination", "/mlruns", "--host", "0.0.0.0", "--port", "5000"]
