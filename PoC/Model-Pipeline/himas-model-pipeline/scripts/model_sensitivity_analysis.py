@@ -20,8 +20,9 @@ Features
 2. Hyperparameter Sensitivity (MLflow-based):
    - Reads past training runs from the MLflow experiment
    - Analyzes how variations in logged hyperparameters
-     relate to validation AUC
+     relate to validation AUC (or another metric)
    - Produces:
+       * Line chart per hyperparameter: value vs mean metric
        * Bar chart ranking hyperparameters by effect size
        * JSON summary of parameter-metric relationships
 
@@ -49,6 +50,8 @@ The outputs are written under:
     results/
       shap_feature_importance_<timestamp>.json
       hparam_sensitivity_<timestamp>.json
+    hyperparams/
+      <param_name>_vs_<metric>.png
 """
 
 import argparse
@@ -363,17 +366,17 @@ class ShapFeatureImportanceAnalyzer:
 # Hyperparameter Sensitivity via MLflow
 # -------------------------------------------------------------------------
 def analyze_hyperparameter_sensitivity(
-    experiment_name: str = "himas-federated",
+    experiment_name: str = "himas-federated-eval",
     metric_key: str = "val_auc",
     output_dir: Path | None = None,
 ) -> None:
     """
     Analyze how logged hyperparameters influence a target metric (e.g. val_auc).
 
-    This uses existing MLflow runs. It does *not* retrain models.
-    It is most useful after you’ve run multiple experiments with different
-    hyperparameters (e.g. different shared hyperparameter JSONs, batch sizes,
-    local epochs, learning rates, etc.).
+    Produces:
+      1) Per-parameter line plots: <param> vs mean <metric_key>
+      2) Overall bar plot of effect_range per hyperparameter
+      3) JSON summary of hyperparameter sensitivity
     """
     logger.info("=" * 70)
     logger.info("Hyperparameter Sensitivity via MLflow")
@@ -419,31 +422,120 @@ def analyze_hyperparameter_sensitivity(
 
     logger.info("Found %d varying hyperparameters", len(varying_params))
 
-    # Compute simple effect size: range of mean metric across param values
+    # Prepare output dirs
+    if output_dir is None:
+        output_dir = Path(
+            get_config_value("tool.himas.paths.evaluation-dir", "evaluation_results")
+        )
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    per_param_dir = output_dir / "hyperparams"
+    per_param_dir.mkdir(exist_ok=True, parents=True)
+
     rows = []
+
     for col in varying_params:
-        grouped = df.groupby(col)[metric_col].mean().dropna()
+        param_name = col.replace("params.", "")
+
+        # Group by parameter value and compute mean/std/count of the metric
+        grouped = (
+            df[[col, metric_col]]
+            .dropna()
+            .groupby(col)[metric_col]
+            .agg(["mean", "std", "count"])
+            .reset_index()
+        )
+
         if len(grouped) < 2:
             continue
 
-        effect = grouped.max() - grouped.min()
+        # Try to interpret parameter values as numeric; fall back to string
+        raw_vals = grouped[col]
+        is_numeric = False
+        try:
+            x_vals = raw_vals.astype(float)
+            is_numeric = True
+        except ValueError:
+            x_vals = raw_vals.astype(str)
+
+        # Sort in x order
+        if is_numeric:
+            order_idx = np.argsort(x_vals.values)
+        else:
+            order_idx = np.argsort(x_vals.astype(str).values)
+
+        x_vals = x_vals.iloc[order_idx].values
+        means = grouped["mean"].iloc[order_idx].values
+        stds = grouped["std"].iloc[order_idx].values
+        counts = grouped["count"].iloc[order_idx].values
+
+        min_metric = float(means.min())
+        max_metric = float(means.max())
+        effect = max_metric - min_metric
+
         rows.append(
             {
-                "param": col.replace("params.", ""),
-                "min_metric": float(grouped.min()),
-                "max_metric": float(grouped.max()),
+                "param": param_name,
+                "min_metric": min_metric,
+                "max_metric": max_metric,
                 "effect_range": float(effect),
-                "n_values": int(len(grouped)),
+                "n_values": int(len(means)),
             }
+        )
+
+        # ------------- Per-parameter LINE plot -------------
+        fig, ax = plt.subplots(figsize=(10, 4))
+
+        if is_numeric:
+            ax.plot(x_vals, means, marker="o", linestyle="-")
+            ax.set_xlabel(param_name)
+        else:
+            positions = np.arange(len(x_vals))
+            ax.plot(positions, means, marker="o", linestyle="-")
+            ax.set_xticks(positions)
+            ax.set_xticklabels(x_vals, rotation=45, ha="right")
+            ax.set_xlabel(param_name)
+
+        ax.set_ylabel(f"Mean {metric_key}")
+        ax.set_title(f"{param_name} vs mean {metric_key}")
+
+        # Zoom y-axis around observed range
+        if max_metric > min_metric:
+            pad = max(0.001, (max_metric - min_metric) * 0.4)
+            ax.set_ylim(min_metric - pad, max_metric + pad)
+        else:
+            ax.set_ylim(min_metric - 0.002, max_metric + 0.002)
+
+        ax.grid(axis="y", linestyle="--", alpha=0.4)
+
+        # Annotate each point with mean and n
+        xs_for_text = x_vals if is_numeric else np.arange(len(x_vals))
+        for x, m, n in zip(xs_for_text, means, counts):
+            ax.text(
+                x,
+                m,
+                f"{m:.3f}\n(n={int(n)})",
+                ha="center",
+                va="bottom",
+                fontsize=7,
+            )
+
+        fig.tight_layout()
+        fig_path = per_param_dir / f"{param_name}_vs_{metric_key}.png"
+        fig.savefig(fig_path, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        logger.info(
+            "Saved per-parameter line plot for %s to %s",
+            param_name,
+            fig_path,
         )
 
     if not rows:
         logger.warning("No usable param–metric relationships found.")
         return
 
-    sensitivity_df = pd.DataFrame(rows).sort_values(
-        "effect_range", ascending=False
-    )
+    # ---------- Overall sensitivity ranking ----------
+    sensitivity_df = pd.DataFrame(rows).sort_values("effect_range", ascending=False)
 
     logger.info("Top hyperparameters by effect_range on %s:", metric_key)
     for _, r in sensitivity_df.head(10).iterrows():
@@ -456,13 +548,7 @@ def analyze_hyperparameter_sensitivity(
             r["n_values"],
         )
 
-    if output_dir is None:
-        output_dir = Path(
-            get_config_value("tool.himas.paths.evaluation-dir", "evaluation_results")
-        )
-    output_dir.mkdir(exist_ok=True)
-
-    # Bar plot
+    # Bar plot of effect_range
     plt.figure(figsize=(10, 6))
     plt.barh(
         sensitivity_df["param"],
@@ -523,7 +609,8 @@ def parse_args() -> argparse.Namespace:
         "--metric-key",
         type=str,
         default="val_auc",
-        help="Metric name used in MLflow for hyperparameter sensitivity (e.g. 'val_auc')",
+        help="Metric name used in MLflow for hyperparameter sensitivity "
+             "(e.g. 'val_auc' or 'val_accuracy')",
     )
     parser.add_argument(
         "--skip-shap",
@@ -539,6 +626,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    logger.info("==== Starting model_sensitivity_analysis main() ====")
     args = parse_args()
 
     # Determine latest model produced by federated training
@@ -563,6 +651,8 @@ def main() -> None:
         )
     else:
         logger.info("Skipping hyperparameter sensitivity (per CLI flag).")
+
+    logger.info("==== Finished model_sensitivity_analysis ====")
 
 
 if __name__ == "__main__":

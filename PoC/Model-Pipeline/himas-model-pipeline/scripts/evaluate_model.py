@@ -895,21 +895,19 @@ def main():
     """
     args = parse_args()
 
-    # Determine threshold from args, config, or default
+    # 1) Decide threshold
     if args.threshold is not None:
         threshold = args.threshold
         logger.info(f"Using threshold from command line: {threshold}")
     else:
-        threshold = get_config_value(
-            'tool.himas.model.prediction-threshold', 0.5)
+        threshold = get_config_value("tool.himas.model.prediction-threshold", 0.5)
         logger.info(f"Using threshold from configuration: {threshold}")
 
     # Validate threshold
     if not 0.0 <= threshold <= 1.0:
-        raise ValueError(
-            f"Threshold must be between 0.0 and 1.0, got {threshold}")
+        raise ValueError(f"Threshold must be between 0.0 and 1.0, got {threshold}")
 
-    # Determine latest model path at runtime (after training has produced models)
+    # 2) Find latest model
     model_path = get_latest_model_path()
 
     logger.info("=" * 70)
@@ -922,15 +920,13 @@ def main():
     run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     with mlflow.start_run(run_name=f"evaluation_{run_ts}") as run:
-        logger.info(f"Started MLflow run: {run.info.run_id}")
-
-        # --- NEW: inspect tracking + artifact URIs for debugging ---
+        # --- debug: confirm URIs ---
         client = MlflowClient()
         run_info = client.get_run(run.info.run_id).info
         logger.info(f"Tracking URI: {mlflow.get_tracking_uri()}")
         logger.info(f"Artifact URI for this run: {run_info.artifact_uri}")
 
-        # Basic tags and params for the evaluation
+        # Tags / params
         mlflow.set_tags({"role": "evaluator", "phase": "evaluation"})
         mlflow.log_params(
             {
@@ -944,27 +940,16 @@ def main():
         # ---------------- Core evaluation workflow ----------------
         evaluator = ModelEvaluator(model_path, PROJECT_ID, threshold)
 
-        evaluator.load_model_and_config()
-        evaluator.load_model_and_config()
-
-        # CRITICAL: Fit preprocessor on training data first
+        # 3) Load model + hyperparams
         evaluator.load_model_and_config()
 
-        # CRITICAL: Fit preprocessor on training data first
-        evaluator.fit_preprocessor_on_training_data()
-        evaluator.fit_preprocessor_on_training_data()
-
-        # Evaluate on test data (using fitted preprocessor)
+        # 4) Fit preprocessor on TRAIN data only
         evaluator.fit_preprocessor_on_training_data()
 
-        # Evaluate on test data (using fitted preprocessor)
-        metrics = evaluator.evaluate_all_hospitals()
-        metrics = evaluator.evaluate_all_hospitals()
-
-        # Generate visualizations
+        # 5) Evaluate on test data
         metrics = evaluator.evaluate_all_hospitals()
 
-        # Generate visualizations
+        # 6) Visualizations + JSON
         evaluator.generate_visualizations()
         evaluator.generate_visualizations()
 
@@ -996,9 +981,6 @@ def main():
                     mlflow.log_metric(f"{prefix}_{k}", float(m[k]))
             if "threshold" in m:
                 mlflow.log_metric(f"{prefix}_threshold", float(m["threshold"]))
-
-        # --- NEW: small debug artifact so we always see something ---
-        mlflow.log_text("hello from evaluator", "debug_hello.txt")
 
         # ---------------- Log artifacts to MLflow ----------------
         figs_dir = evaluator.output_dir / "figures"
