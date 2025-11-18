@@ -4,13 +4,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install mlflow once at build time, not every container start
+# Install MLflow (same version as the rest of the stack)
 RUN pip install --no-cache-dir mlflow==2.16.0
 
-# Directory for MLflow tracking data inside the container
+# Single directory for both backend store (sqlite) and artifacts
 RUN mkdir -p /mlruns && chmod -R 777 /mlruns
 
 EXPOSE 5000
 
-# Start MLflow tracking server; use ABSOLUTE path for sqlite backend
-CMD ["mlflow", "server", "--backend-store-uri", "sqlite:////mlruns/mlflow.db", "--default-artifact-root", "/mlruns", "--host", "0.0.0.0", "--port", "5000"]
+# IMPORTANT: --artifacts-destination must be a plain path, not file:// URI
+CMD ["mlflow", "server", "--backend-store-uri", "sqlite:////mlruns/mlflow.db", "--serve-artifacts", "--artifacts-destination", "/mlruns", "--host", "0.0.0.0", "--port", "5000"]

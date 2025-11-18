@@ -24,10 +24,11 @@ WORKDIR /app
 # Copy the entire project into the image
 COPY . .
 
-# Install build backend and project dependencies (incl. mlflow etc. via pyproject)
+# Install build backend and project dependencies (incl. MLflow)
 RUN pip install --upgrade pip \
  && pip install hatchling \
- && pip install "flwr[app]" \ 
+ && pip install "flwr[app]" \
+ && pip install mlflow==2.16.0 \
  && pip install .
 
 # Default command is a shell; docker-compose overrides this

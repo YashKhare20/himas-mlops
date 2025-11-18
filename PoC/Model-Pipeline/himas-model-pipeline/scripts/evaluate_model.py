@@ -70,6 +70,7 @@ from sklearn.metrics import (
 
 import os
 import mlflow
+from mlflow.tracking import MlflowClient  # <-- NEW
 
 _MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "file:./mlruns")
 _MLFLOW_EXP = os.getenv("MLFLOW_EXPERIMENT_NAME", "himas-federated-eval")
@@ -911,97 +912,116 @@ def main():
     # Determine latest model path at runtime (after training has produced models)
     model_path = get_latest_model_path()
 
-    logger.info("="*70)
+    logger.info("=" * 70)
     logger.info("HIMAS FEDERATED MODEL EVALUATION")
-    logger.info("="*70)
+    logger.info("=" * 70)
     logger.info(f"Model: {model_path}")
     logger.info(f"Threshold: {threshold}")
-    logger.info("="*70)
+    logger.info("=" * 70)
 
-    # --- MLflow (evaluation run) setup: non-intrusive additions ---
-    import os
-    from datetime import datetime as _dt
-    run_ts = _dt.now().strftime("%Y%m%d_%H%M%S")
-    mlflow = None
-    try:
-        import mlflow  # noqa: F401
-        import mlflow  # type: ignore
-        tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
-        if tracking_uri:
-            mlflow.set_tracking_uri(tracking_uri)
-        exp_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "himas-federated-eval")
-        mlflow.set_experiment(exp_name)
-        mlflow.start_run(run_name=f"evaluation_{run_ts}")
+    run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    with mlflow.start_run(run_name=f"evaluation_{run_ts}") as run:
+        logger.info(f"Started MLflow run: {run.info.run_id}")
+
+        # --- NEW: inspect tracking + artifact URIs for debugging ---
+        client = MlflowClient()
+        run_info = client.get_run(run.info.run_id).info
+        logger.info(f"Tracking URI: {mlflow.get_tracking_uri()}")
+        logger.info(f"Artifact URI for this run: {run_info.artifact_uri}")
+
+        # Basic tags and params for the evaluation
         mlflow.set_tags({"role": "evaluator", "phase": "evaluation"})
-        # Log static params for this evaluation
-        mlflow.log_params({
-            "evaluation_threshold": float(threshold),
-            "model_path": str(model_path),
-            "project_id": str(PROJECT_ID),
-            "dataset_id": str(DATASET_ID),
-        })
-    except Exception as e:
-        logger.warning(f"MLflow setup warning (evaluation): {e}")
-    # -------------------------------------------------------------
-
-    # Initialize evaluator
-    evaluator = ModelEvaluator(model_path, PROJECT_ID, threshold)
-
-    # Load model and hyperparameters
-    evaluator.load_model_and_config()
-
-    # CRITICAL: Fit preprocessor on training data first
-    evaluator.fit_preprocessor_on_training_data()
-
-    # Evaluate on test data (using fitted preprocessor)
-    metrics = evaluator.evaluate_all_hospitals()
-
-    # Generate visualizations
-    evaluator.generate_visualizations()
-
-    # Save results
-    evaluator.save_results(metrics)
-
-    # --- MLflow: log metrics and artifacts from evaluation (added) ---
-    try:
-        if mlflow is not None:
-            # Log per-hospital and aggregated metrics
-            # Only log scalar numeric fields
-            numeric_keys = {
-                "n_samples", "n_deaths", "prevalence",
-                "accuracy", "precision", "recall", "f1_score",
-                "roc_auc", "average_precision", "specificity", "npv",
+        mlflow.log_params(
+            {
+                "evaluation_threshold": float(threshold),
+                "model_path": str(model_path),
+                "project_id": str(PROJECT_ID),
+                "dataset_id": str(DATASET_ID),
             }
-            for m in metrics:
-                prefix = str(m.get("hospital", "unknown")).lower()
-                for k in numeric_keys:
-                    if k in m and isinstance(m[k], (int, float)):
-                        mlflow.log_metric(f"{prefix}_{k}", float(m[k]))
-                # Also log threshold used for each (should be same, but explicit)
-                if "threshold" in m:
-                    mlflow.log_metric(f"{prefix}_threshold", float(m["threshold"]))
+        )
 
-            # Attach all figures and result JSONs
-            figs_dir = evaluator.output_dir / "figures"
-            res_dir = evaluator.output_dir / "results"
-            if figs_dir.exists():
-                mlflow.log_artifacts(str(figs_dir), artifact_path="figures")
-            if res_dir.exists():
-                mlflow.log_artifacts(str(res_dir), artifact_path="results")
-    except Exception as e:
-        logger.warning(f"MLflow logging warning (evaluation): {e}")
-    finally:
-        try:
-            if mlflow is not None:
-                mlflow.end_run()
-        except Exception:
-            pass
-    # ---------------------------------------------------------------
+        # ---------------- Core evaluation workflow ----------------
+        evaluator = ModelEvaluator(model_path, PROJECT_ID, threshold)
 
-    logger.info("="*70)
+        evaluator.load_model_and_config()
+        evaluator.load_model_and_config()
+
+        # CRITICAL: Fit preprocessor on training data first
+        evaluator.load_model_and_config()
+
+        # CRITICAL: Fit preprocessor on training data first
+        evaluator.fit_preprocessor_on_training_data()
+        evaluator.fit_preprocessor_on_training_data()
+
+        # Evaluate on test data (using fitted preprocessor)
+        evaluator.fit_preprocessor_on_training_data()
+
+        # Evaluate on test data (using fitted preprocessor)
+        metrics = evaluator.evaluate_all_hospitals()
+        metrics = evaluator.evaluate_all_hospitals()
+
+        # Generate visualizations
+        metrics = evaluator.evaluate_all_hospitals()
+
+        # Generate visualizations
+        evaluator.generate_visualizations()
+        evaluator.generate_visualizations()
+
+        # Save results
+        evaluator.generate_visualizations()
+
+        # Save results
+        evaluator.save_results(metrics)
+
+        # ---------------- Log metrics to MLflow ----------------
+        numeric_keys = {
+            "n_samples",
+            "n_deaths",
+            "prevalence",
+            "accuracy",
+            "precision",
+            "recall",
+            "f1_score",
+            "roc_auc",
+            "average_precision",
+            "specificity",
+            "npv",
+        }
+
+        for m in metrics:
+            prefix = str(m.get("hospital", "unknown")).lower()
+            for k in numeric_keys:
+                if k in m and isinstance(m[k], (int, float)):
+                    mlflow.log_metric(f"{prefix}_{k}", float(m[k]))
+            if "threshold" in m:
+                mlflow.log_metric(f"{prefix}_threshold", float(m["threshold"]))
+
+        # --- NEW: small debug artifact so we always see something ---
+        mlflow.log_text("hello from evaluator", "debug_hello.txt")
+
+        # ---------------- Log artifacts to MLflow ----------------
+        figs_dir = evaluator.output_dir / "figures"
+        res_dir = evaluator.output_dir / "results"
+
+        if figs_dir.exists():
+            logger.info(f"Logging figures from {figs_dir} to MLflow")
+            mlflow.log_artifacts(str(figs_dir), artifact_path="figures")
+        else:
+            logger.warning(f"Figures directory not found: {figs_dir}")
+
+        if res_dir.exists():
+            logger.info(f"Logging results from {res_dir} to MLflow")
+            mlflow.log_artifacts(str(res_dir), artifact_path="results")
+        else:
+            logger.warning(f"Results directory not found: {res_dir}")
+
+        logger.info(f"Finished MLflow run: {run.info.run_id}")
+
+    logger.info("=" * 70)
     logger.info("EVALUATION COMPLETED SUCCESSFULLY")
     logger.info(f"Results directory: {evaluator.output_dir}")
-    logger.info("="*70)
+    logger.info("=" * 70)
 
 
 if __name__ == "__main__":
