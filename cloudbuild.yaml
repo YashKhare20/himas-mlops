@@ -97,6 +97,7 @@ steps:
     args:
       - '-c'
       - |
+        set -e
         cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/* /app/
         cd /app
         
