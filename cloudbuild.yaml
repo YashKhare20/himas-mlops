@@ -172,7 +172,7 @@ steps:
           exit 0
         }
         
-        PREV_LATEST=$$(ls -t prev_results/*.json | head -1)
+        PREV_LATEST=$$(find prev_results -name "*.json" -type f | head -1)
         PREV_ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$PREV_LATEST)
         PREV_REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$PREV_LATEST)
         
