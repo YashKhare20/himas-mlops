@@ -145,63 +145,62 @@ steps:
         echo "Checking for previous model..."
         
         LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
-
-        echo "Using metrics from: $$LATEST_JSON"
-
         NEW_ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
         NEW_REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
 
         echo "New model - Accuracy: $$NEW_ACC, Recall: $$NEW_REC"
         
-        # Try to get the latest previous model from GCS
-        PREV_BUILD=$$(gsutil ls gs://himas-mlops-models/evaluation-results/ | sort -r | sed -n '2p' | xargs basename)
+        # Get previous model timestamp from registry
+        gsutil cp gs://himas-mlops-models/model-registry/latest.txt . || {
+          echo "No previous model found. This is the first model - proceeding."
+          exit 0
+        }
         
-        if [ -z "$$PREV_BUILD" ]; then
+        PREV_TIMESTAMP=$$(cat latest.txt)
+        
+        if [ -z "$$PREV_TIMESTAMP" ]; then
           echo "No previous model found. This is the first model - proceeding."
           exit 0
         fi
         
-        echo "Found previous build: $$PREV_BUILD"
+        echo "Found previous model: $$PREV_TIMESTAMP"
         
         # Download previous model's metrics
         mkdir -p prev_results
-        gsutil cp gs://himas-mlops-models/evaluation-results/$$PREV_BUILD/*.json prev_results/ || {
+        gsutil cp gs://himas-mlops-models/evaluation-results/$$PREV_TIMESTAMP/results/*.json prev_results/ || {
           echo "Could not fetch previous results. Proceeding with current model."
           exit 0
         }
+        
         PREV_LATEST=$$(ls -t prev_results/*.json | head -1)
-        # Get previous model metrics
         PREV_ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$PREV_LATEST)
         PREV_REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$PREV_LATEST)
         
         echo "Previous model - Accuracy: $$PREV_ACC, Recall: $$PREV_REC"
         
-        # Compare models (new model must be better OR within 2% tolerance)
         ACC_DIFF=$$(echo "$$NEW_ACC - $$PREV_ACC" | bc -l)
         REC_DIFF=$$(echo "$$NEW_REC - $$PREV_REC" | bc -l)
         
         echo "Accuracy difference: $$ACC_DIFF"
         echo "Recall difference: $$REC_DIFF"
         
-        # Rollback if new model is significantly worse (>2% drop in either metric)
         if (( $$(echo "$$ACC_DIFF < -0.02" | bc -l) )) || (( $$(echo "$$REC_DIFF < -0.02" | bc -l) )); then
           echo "❌ ROLLBACK: New model performs worse than previous model"
           echo "   Previous: Acc=$$PREV_ACC, Rec=$$PREV_REC"
           echo "   New:      Acc=$$NEW_ACC, Rec=$$NEW_REC"
-          echo "   Not uploading new model."
           exit 1
         else
           echo "✅ New model is better or comparable. Proceeding with upload."
           exit 0
         fi
-#
+
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-model'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+        TIMESTAMP=$$(cat /workspace/build_timestamp.txt)
         echo "Uploading model with timestamp: $$TIMESTAMP"
         gsutil cp /workspace/models/himas_federated_mortality_model.keras \
           gs://himas-mlops-models/models/$${TIMESTAMP}/model.keras
@@ -237,7 +236,7 @@ steps:
         cd /workspace
         
         # Read timestamp
-        TIMESTAMP=$$(cat /workspace/model_timestamp.txt)
+        TIMESTAMP=$$(cat /workspace/build_timestamp.txt)
         echo "Using timestamp: $$TIMESTAMP"
 
         # Get metrics
@@ -262,10 +261,9 @@ steps:
             "registered_at": "$$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           },
           "artifacts": {
-            "model_file": "gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/model.keras",
-            "container_image": "gcr.io/$PROJECT_ID/himas-training:$BUILD_ID",
-            "evaluation_results": "gs://himas-mlops-models/evaluation-results/$BUILD_ID/",
-            "mlflow_tracking": "gs://himas-mlops-models/mlflow-runs/$BUILD_ID/"
+            "model_file": "gs://himas-mlops-models/models/$${TIMESTAMP}/model.keras",
+            "evaluation_results": "gs://himas-mlops-models/evaluation-results/$${TIMESTAMP}/",
+            "mlflow_tracking": "gs://himas-mlops-models/mlflow-runs/$${TIMESTAMP}/"
           },
           "performance_metrics": {
             "accuracy": $$ACC,
@@ -292,16 +290,16 @@ steps:
         
         # Upload to model registry in GCS
         gsutil cp model_card.json \
-          gs://himas-mlops-models/model-registry/$${TIMESTAMP}_$BUILD_ID.json
+          gs://himas-mlops-models/model-registry/$${TIMESTAMP}.json
         
         # Update latest pointer
-        echo "$${TIMESTAMP}_$BUILD_ID" > latest_model.txt
+        echo "$$TIMESTAMP" > latest_model.txt
         gsutil cp latest_model.txt gs://himas-mlops-models/model-registry/latest.txt
         
         echo ""
         echo "✅ Model registered in Model Registry (GCS-based)"
-        echo "   Registry Entry: gs://himas-mlops-models/model-registry/$${TIMESTAMP}_$BUILD_ID.json"
-        echo "   Model Artifact: gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/model.keras"
+        echo "   Registry Entry: gs://himas-mlops-models/model-registry/$${TIMESTAMP}.json"
+        echo "   Model Artifact: gs://himas-mlops-models/models/$${TIMESTAMP}/model.keras"
         echo "   Container Image: gcr.io/$PROJECT_ID/himas-training:$BUILD_ID"
         echo "   Latest Model: gs://himas-mlops-models/model-registry/latest.txt"
 
