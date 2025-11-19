@@ -42,14 +42,15 @@ steps:
         echo "✅ Model copied to workspace:"
         ls -lh /workspace/models/
 
-  - name: 'gcr.io/cloud-builders/bash'
-    id: 'create-timestamp'
-    args:
-      - '-c'
-      - |
-        TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
-        echo "$$TIMESTAMP" > /workspace/build_timestamp.txt
-        echo "Build timestamp: $$TIMESTAMP"
+  - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
+      id: 'create-timestamp'
+      entrypoint: 'bash'
+      args:
+        - '-c'
+        - |
+          TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+          echo "$$TIMESTAMP" > /workspace/build_timestamp.txt
+          echo "📅 Build timestamp: $$TIMESTAMP"
 
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'evaluate-model'
