@@ -34,6 +34,7 @@
   * [Docker Compose Mode (End-to-End Pipeline with MLflow + BigQuery)](#docker-compose-mode-end-to-end-pipeline-with-mlflow--bigquery)
 * [Output Artifacts](#output-artifacts)
 * [Configuration](#configuration)
+* [CI/CD Pipeline](#cicd-pipeline)
 * [Resources](#resources)
 
 ---
@@ -997,19 +998,9 @@ shared-hyperparameters = "hyperparameters/hospital_a_best_hyperparameters.json"
 
 Automated pipeline for federated learning model training, validation, and deployment. Triggers automatically on push to `main` or `feature_manjusha` branches.
 
-**Pipeline Flow:**
-```
-Git Push → Build Docker Image → Train Model → Evaluate → Validate Metrics → 
-Bias Detection → Compare with Previous → Upload to GCS → Register in Vertex AI
-```
-
-**Duration:** ~18-22 minutes | **All 6 MLOps requirements met** ✅
-
 ---
 
 ### Prerequisites (One-Time Setup)
-
-Before pushing code that triggers the pipeline, ensure:
 
 **1. Authenticate with Google Cloud:**
 ```bash
@@ -1017,26 +1008,21 @@ gcloud auth login
 gcloud config set project erudite-carving-472018-r5
 ```
 
-**2. Verify permissions are configured:**
+**2. Verify access:**
 ```bash
-# Check if you can access BigQuery
+# Check BigQuery access
 bq query --use_legacy_sql=false \
   'SELECT COUNT(*) FROM `erudite-carving-472018-r5.federated_demo.hospital_a_data`'
 
-# Check if GCS bucket exists
+# Check GCS bucket
 gsutil ls gs://himas-mlops-models/
-```
-
-**3. Ensure you're on the correct branch:**
-```bash
-git checkout main  # or feature_manjusha
 ```
 
 ---
 
 ### Triggering the Pipeline
 ```bash
-# Make your changes
+# Make changes and push
 git add .
 git commit -m "Your commit message"
 git push origin main  # Pipeline triggers automatically
@@ -1045,68 +1031,155 @@ git push origin main  # Pipeline triggers automatically
 **Monitor build:**
 - Console: https://console.cloud.google.com/cloud-build/builds?project=erudite-carving-472018-r5
 - CLI: `gcloud builds list --limit=5`
+- Email: Check inbox for HTML notification (success/failure)
 
 ---
 
 ### Pipeline Stages
 
-| Stage | Duration | What It Does |
-|-------|----------|-------------|
-| **Build Image** | 2-3 min | Creates Docker container with all dependencies |
-| **Train Model** | 13-15 min | Runs federated learning (3 hospitals, 15 rounds) |
-| **Evaluate** | <1 min | Computes metrics on test data |
-| **Validate** | <1 min | Checks accuracy ≥85%, recall ≥60% |
-| **Bias Check** | <1 min | Ensures fairness across hospitals |
-| **Rollback Check** | <1 min | Compares with previous model |
-| **Upload Model** | <1 min | Saves to GCS bucket |
-| **Upload Results** | <1 min | Saves metrics and figures |
-| **Register** | <1 min | Adds to Vertex AI Model Registry |
+| Stage | What It Does | Requirement |
+|-------|-------------|-------------|
+| **Build Image** | Creates Docker container with TensorFlow, Flower, BigQuery | CI/CD Setup |
+| **Train Model** | Federated learning (3 hospitals, 15 rounds) with MLflow tracking | CI/CD Setup |
+| **Create Timestamp** | Generates UTC timestamp for artifact versioning | Versioning |
+| **Evaluate** | Computes metrics on test data with MLflow logging | Model Validation |
+| **Validate Metrics** | Checks accuracy ≥85%, recall ≥60% - blocks if failed | Model Validation |
+| **Bias Detection** | Demographic fairness checks using Fairlearn | Bias Detection |
+| **Rollback Check** | Compares with previous model - blocks if worse | Rollback Mechanism |
+| **Upload Model** | Saves to GCS: `models/{TIMESTAMP}/model.keras` | Model Registry |
+| **Upload Results** | Saves metrics + figures to GCS | Model Registry |
+| **Upload MLflow** | Saves experiment tracking data to GCS | Experiment Tracking |
+| **Register Model** | Creates model card in registry with metadata | Model Registry |
 
 ---
 
-### Success & Failure
+### Pipeline Outputs
 
-**✅ Pipeline succeeds when:**
-- Accuracy ≥ 85% AND Recall ≥ 60%
-- Hospital metrics within fairness tolerance (Δacc ≤5%, Δrecall ≤7%)
-- New model ≥ previous model performance
-
-**❌ Pipeline fails and stops when:**
-- Model doesn't meet minimum thresholds
-- Bias detected across hospitals
-- New model underperforms previous model
-- Build or permission errors
-
-**Check your email for build notifications** 📧
-
----
-
-### Viewing Results
-
-**GCS Bucket outputs:**
+**GCS Bucket Structure (Timestamp-Based):**
 ```
 gs://himas-mlops-models/
-├── models/model_<BUILD_ID>.keras
-└── evaluation-results/<BUILD_ID>/
-    ├── results/evaluation_results_*.json
-    └── figures/
-        ├── roc_curves.png
-        ├── confusion_matrices.png
-        └── metrics_comparison.png
-```
-
-**Download results:**
-```bash
-# List recent builds
-gsutil ls gs://himas-mlops-models/evaluation-results/
-
-# Download specific build results
-gsutil cp -r gs://himas-mlops-models/evaluation-results/<BUILD_ID>/ ./
+├── models/
+│   ├── 20251119_001807/model.keras
+│   ├── 20251119_003908/model.keras
+│   └── ...
+├── evaluation-results/
+│   ├── 20251119_001807/
+│   │   ├── results/evaluation_results_*.json
+│   │   └── figures/*.png
+│   └── 20251119_003908/
+├── mlflow-runs/
+│   ├── 20251119_001807/mlruns/
+│   └── 20251119_003908/mlruns/
+└── model-registry/
+    ├── 20251119_001807.json  ← Model metadata
+    ├── 20251119_003908.json
+    └── latest.txt             ← Points to latest model timestamp
 ```
 
 **View in console:**
-- Models: https://console.cloud.google.com/storage/browser/himas-mlops-models
-- Vertex AI: https://console.cloud.google.com/vertex-ai/models
+- GCS Bucket: https://console.cloud.google.com/storage/browser/himas-mlops-models
+- Cloud Build History: https://console.cloud.google.com/cloud-build/builds
+
+**Download artifacts:**
+```bash
+# Get latest model timestamp
+LATEST=$(gsutil cat gs://himas-mlops-models/model-registry/latest.txt)
+
+# Download model
+gsutil cp gs://himas-mlops-models/models/${LATEST}/model.keras ./
+
+# Download evaluation results
+gsutil cp -r gs://himas-mlops-models/evaluation-results/${LATEST}/ ./
+
+# View model metadata
+gsutil cat gs://himas-mlops-models/model-registry/${LATEST}.json | jq
+```
+
+---
+
+### Success & Failure Scenarios
+
+**✅ Pipeline succeeds when:**
+- Accuracy ≥ 85% AND Recall ≥ 60%
+- No demographic bias detected (demographic parity ≤60%, equalized odds ≤110%)
+- New model ≥ previous model performance (or first model)
+- All stages complete without errors
+
+**Successful Pipeline Execution:**
+
+![CI/CD Pipeline Success](assets/cicd_success_gcb.png)
+
+**❌ Pipeline fails and stops when:**
+
+| Failure Type | Reason | Action |
+|--------------|--------|--------|
+| **Validation Failed** | Accuracy < 85% or Recall < 60% | Review hyperparameters, check data quality |
+| **Bias Detected** | Unfair performance across age/gender/race/insurance groups | Investigate data distribution, consider mitigation |
+| **Rollback Triggered** | New model accuracy/recall drops >2% from previous | Review recent code/data changes, revert if needed |
+| **Training Failed** | Model training errors | Check BigQuery access, verify dependencies |
+
+**Email notifications sent to entire team for all build events** 📧
+
+**Email Notification Example:**
+
+![Success Email Notification](assets/success_email.png)
+
+---
+
+### Notifications
+
+**HTML Email Notifications** sent via Cloud Function to all the team members
+
+**Email includes:**
+- ✅ Build status (SUCCESS/FAILURE)
+- Pipeline stages completed
+- Failed stage details (if applicable)
+- Link to build logs
+- Professional HTML formatting
+
+---
+
+### MLflow Integration
+
+**Experiment tracking automatically logged during pipeline:**
+- Training metrics per round per hospital
+- Evaluation metrics per hospital
+- Hyperparameters and configuration
+- Model artifacts
+
+**View MLflow runs:**
+```bash
+# Download MLflow data
+LATEST=$(gsutil cat gs://himas-mlops-models/model-registry/latest.txt)
+gsutil cp -r gs://himas-mlops-models/mlflow-runs/${LATEST}/ ./mlflow-data/
+
+# Start MLflow UI
+mlflow ui --backend-store-uri file:./mlflow-data/mlruns
+# Open http://localhost:5000
+```
+
+---
+
+### Model Registry
+
+**GCS-based model registry with full version control:**
+
+**Query latest production model:**
+```bash
+# Get latest model timestamp
+gsutil cat gs://himas-mlops-models/model-registry/latest.txt
+
+# Get model metadata
+LATEST=$(gsutil cat gs://himas-mlops-models/model-registry/latest.txt)
+gsutil cat gs://himas-mlops-models/model-registry/${LATEST}.json
+```
+
+**Model card contains:**
+- Model version (BUILD_ID) and timestamp
+- Performance metrics (accuracy, recall, precision, F1, AUC)
+- Artifact locations (model file, results, MLflow runs)
+- Training configuration (framework, federated settings)
+- Production status
 
 ---
 
@@ -1122,24 +1195,13 @@ gcloud builds log $(gcloud builds list --limit=1 --format='value(id)')
 
 | Error | Solution |
 |-------|----------|
-| Permission denied | Verify gcloud authentication: `gcloud auth list` |
-| Build timeout | Check if training data is accessible in BigQuery |
-| Validation failed | Review model performance in build logs |
-| Bias detected | Check hospital data distributions for issues |
+| Permission denied | Verify: `gcloud auth list` |
+| Build timeout | Check BigQuery data access |
+| Validation failed | Review model performance thresholds |
+| Bias detected | Check demographic data distributions |
+| Rollback triggered | Compare with previous build, review changes |
 
 ---
-
-### Requirements Checklist
-
-| Requirement | Implementation | Status |
-|-------------|---------------|--------|
-| CI/CD Setup | Google Cloud Build with cloudbuild.yaml | ✅ |
-| Model Validation | Automated threshold checks (acc ≥85%, recall ≥60%) | ✅ |
-| Bias Detection | Hospital fairness validation | ✅ |
-| Model Registry | GCS + Vertex AI registration | ✅ |
-| Notifications | Email alerts for build status | ✅ |
-| Rollback | Performance comparison with previous model | ✅ |
-
 
 ## Resources
 
