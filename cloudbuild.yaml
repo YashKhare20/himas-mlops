@@ -15,7 +15,7 @@ steps:
     id: 'train-model'
     env:
       - 'GCP_PROJECT_ID=$PROJECT_ID'
-      - 'DATASET_ID=federated_demo'
+      - 'DATASET_ID=federated'
       - 'MLFLOW_TRACKING_URI=file:///workspace/mlruns'
       - 'MLFLOW_EXPERIMENT_NAME=himas-federated-training'
     entrypoint: 'bash'
@@ -24,7 +24,7 @@ steps:
       - |
         cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/* /app/
         cd /app
-        echo "Starting training with federated_demo..."
+        echo "Starting training with federated..."
         flwr run .
         mkdir -p /workspace/models
         
@@ -56,7 +56,7 @@ steps:
     id: 'evaluate-model'
     env:
       - 'GCP_PROJECT_ID=$PROJECT_ID'
-      - 'DATASET_ID=federated_demo'
+      - 'DATASET_ID=federated'
       - 'MLFLOW_TRACKING_URI=file:///workspace/mlruns'
       - 'MLFLOW_EXPERIMENT_NAME=himas-federated-eval'
     entrypoint: 'bash'
@@ -101,7 +101,7 @@ steps:
     id: 'bias-detection'
     env:
       - 'GCP_PROJECT_ID=$PROJECT_ID'
-      - 'DATASET_ID=federated_demo'
+      - 'DATASET_ID=federated'
     entrypoint: 'bash'
     args:
       - '-c'
