@@ -42,6 +42,15 @@ steps:
         echo "✅ Model copied to workspace:"
         ls -lh /workspace/models/
 
+  - name: 'gcr.io/cloud-builders/bash'
+    id: 'create-timestamp'
+    args:
+      - '-c'
+      - |
+        TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+        echo "$$TIMESTAMP" > /workspace/build_timestamp.txt
+        echo "Build timestamp: $$TIMESTAMP"
+
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'evaluate-model'
     env:
@@ -194,29 +203,29 @@ steps:
         TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
         echo "Uploading model with timestamp: $$TIMESTAMP"
         gsutil cp /workspace/models/himas_federated_mortality_model.keras \
-          gs://himas-mlops-models/models/$${TIMESTAMP}_$BUILD_ID/model.keras
-        
-        # Store timestamp for next step
-        echo "$$TIMESTAMP" > /workspace/model_timestamp.txt
+          gs://himas-mlops-models/models/$${TIMESTAMP}/model.keras
       
-
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-results'
+    entrypoint: 'bash'
     args:
-      - '-m'
-      - 'cp'
-      - '-r'
-      - '/workspace/evaluation_results/'
-      - 'gs://himas-mlops-models/evaluation-results/$BUILD_ID/'
+      - '-c'
+      - |
+        TIMESTAMP=$$(cat /workspace/build_timestamp.txt)
+        echo "Uploading results with timestamp: $$TIMESTAMP"
+        gsutil -m cp -r /workspace/evaluation_results/ \
+          gs://himas-mlops-models/evaluation-results/$${TIMESTAMP}/
 
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-mlflow-artifacts'
+    entrypoint: 'bash'
     args:
-      - '-m'
-      - 'cp'
-      - '-r'
-      - '/workspace/mlruns'
-      - 'gs://himas-mlops-models/mlflow-runs/$BUILD_ID/'
+      - '-c'
+      - |
+        TIMESTAMP=$$(cat /workspace/build_timestamp.txt)
+        echo "Uploading MLflow artifacts with timestamp: $$TIMESTAMP"
+        gsutil -m cp -r /workspace/mlruns \
+          gs://himas-mlops-models/mlflow-runs/$${TIMESTAMP}/
 
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'register-model-in-registry'

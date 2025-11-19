@@ -1,15 +1,16 @@
 name: HIMAS CI Tests
+on: [] 
 
-on:
-  pull_request:
-    branches:
-      - main
-      - feature_poc
-    paths:
-      - "PoC/Data-Pipeline/dags/**"
-      - "PoC/Data-Pipeline/tests/**"
-      - "PoC/Data-Pipeline/requirements.txt"
-      - "PoC/Data-Pipeline/.dvc/**"
+# on:
+#   pull_request:
+#     branches:
+#       - main
+#       - feature_poc
+#     paths:
+#       - "PoC/Data-Pipeline/dags/**"
+#       - "PoC/Data-Pipeline/tests/**"
+#       - "PoC/Data-Pipeline/requirements.txt"
+#       - "PoC/Data-Pipeline/.dvc/**"
 
 jobs:
   test:
