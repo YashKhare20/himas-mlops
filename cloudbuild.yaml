@@ -303,6 +303,35 @@ steps:
         echo "   Container Image: gcr.io/$PROJECT_ID/himas-training:$BUILD_ID"
         echo "   Latest Model: gs://himas-mlops-models/model-registry/latest.txt"
 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'vertex-ai-register'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "📌 Registering model in Vertex AI Model Registry..."
+
+        PROJECT_ID=$PROJECT_ID
+        REGION=us-central1
+        TIMESTAMP=$(cat /workspace/build_timestamp.txt)
+        MODEL_PATH="gs://himas-mlops-models/models/$TIMESTAMP/model.keras"
+
+        echo "Model artifact: $MODEL_PATH"
+
+        # 1️⃣ Create a model in Vertex AI
+        MODEL_ID=$(gcloud ai models upload \
+          --region=$REGION \
+          --display-name="himas-federated-mortality-model" \
+          --artifact-uri=$MODEL_PATH \
+          --container-image-uri="gcr.io/$PROJECT_ID/himas-training:latest" \
+          --format="value(name)")
+
+        echo "✅ Vertex Model ID: $MODEL_ID"
+
+        # Store model ID for use in deployment step
+        echo $MODEL_ID > /workspace/vertex_model_id.txt
+
+
 images:
   - 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
   - 'gcr.io/$PROJECT_ID/himas-training:latest'
