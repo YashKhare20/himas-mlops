@@ -204,6 +204,7 @@ steps:
         echo "Uploading model with timestamp: $$TIMESTAMP"
         gsutil cp /workspace/models/himas_federated_mortality_model.keras \
           gs://himas-mlops-models/models/$${TIMESTAMP}/model.keras
+
       
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-results'
@@ -215,6 +216,7 @@ steps:
         echo "Uploading results with timestamp: $$TIMESTAMP"
         gsutil -m cp -r /workspace/evaluation_results/ \
           gs://himas-mlops-models/evaluation-results/$${TIMESTAMP}/
+        echo "UPLOAD STEP TIMESTAMP: $(cat /workspace/build_timestamp.txt)"
 
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-mlflow-artifacts'
@@ -330,6 +332,8 @@ steps:
 
         echo "Vertex Model ID: $${MODEL_ID}"
         echo "$${MODEL_ID}" > /workspace/vertex_model_id.txt
+        echo "VERTEX STEP TIMESTAMP: $(cat /workspace/build_timestamp.txt)"
+
 
 
 images:
