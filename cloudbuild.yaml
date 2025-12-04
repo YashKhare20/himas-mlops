@@ -319,7 +319,7 @@ steps:
         # Use double-dollar to avoid Cloud Build substitution parsing
         TIMESTAMP=$$(cat /workspace/build_timestamp.txt)
 
-        MODEL_PATH="gs://himas-mlops-models/models/$${TIMESTAMP}/model.keras"
+        MODEL_PATH="gs://himas-mlops-models/models/$${TIMESTAMP}/"
 
         echo "Model artifact: $${MODEL_PATH}"
 
