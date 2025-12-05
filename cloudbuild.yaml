@@ -12,6 +12,24 @@ steps:
       - 'PoC/Model-Pipeline/himas-model-pipeline/Dockerfile'
       - 'PoC/Model-Pipeline/himas-model-pipeline/'
 
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-serving-image'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/himas-serving:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/himas-serving:latest'
+      - 'PoC/Model-Serving/app'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-serving-image'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/himas-serving:latest'
+
+
+
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
     id: 'train-model'
     env:
@@ -206,6 +224,18 @@ steps:
         gsutil cp /workspace/models/himas_federated_mortality_model.keras \
           gs://himas-mlops-models/models/$${TIMESTAMP}/model.keras
 
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'upload-preprocessing-artifacts'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        TIMESTAMP=$(cat /workspace/build_timestamp.txt)
+        echo "Uploading preprocessing artifacts for timestamp: $TIMESTAMP"
+
+        gsutil -m cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/models/preprocessing \
+          gs://himas-mlops-models/models/${TIMESTAMP}/preprocessing/
+
       
   - name: 'gcr.io/cloud-builders/gsutil'
     id: 'upload-results'
@@ -328,7 +358,7 @@ steps:
           --region=$${REGION} \
           --display-name="himas-federated-mortality-model" \
           --artifact-uri="$${MODEL_PATH}" \
-          --container-image-uri="gcr.io/$${PROJECT_ID}/himas-training:latest" \
+          --container-image-uri="gcr.io/$${PROJECT_ID}/himas-serving:latest"
           --format="value(name)")
 
         echo "Vertex Model ID: $${MODEL_ID}"
