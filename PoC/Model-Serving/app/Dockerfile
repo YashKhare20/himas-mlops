@@ -1,44 +1,34 @@
-# ---------------------------
-# 1. Base Image
-# ---------------------------
-    FROM python:3.10-slim
+FROM google/cloud-sdk:slim
 
-    # ---------------------------
-    # 2. Install required system packages
-    # ---------------------------
-    RUN apt-get update && apt-get install -y \
-        build-essential \
-        && rm -rf /var/lib/apt/lists/*
-    
-    # ---------------------------
-    # 3. Create work directory
-    # ---------------------------
-    WORKDIR /app
-    
-    # ---------------------------
-    # 4. Copy requirements
-    # ---------------------------
-    COPY app/requirements.txt /app/requirements.txt
+# Install Python dependencies
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /app
 
-    
-    # ---------------------------
-    # 5. Install Python dependencies
-    # ---------------------------
-    RUN pip install --no-cache-dir -r /app/requirements.txt
-    
-    # ---------------------------
-    # 6. Copy application code
-    # ---------------------------
-    COPY . /app
-    
-    # ---------------------------
-    # 7. Expose port required by Vertex AI (predict container)
-    # ---------------------------
-    EXPOSE 8080
-    
-    # ---------------------------
-    # 8. Start FastAPI server (Vertex AI expects port 8080)
-    # ---------------------------
-    CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
-    
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip3 install --break-system-packages --no-cache-dir \
+    "tensorflow>=2.11.1,<2.18.0" \
+    && pip3 install --break-system-packages --no-cache-dir -r requirements.txt
+
+# Set TensorFlow environment variables
+ENV TF_CPP_MIN_LOG_LEVEL=2
+ENV TF_ENABLE_ONEDNN_OPTS=0
+
+# Copy application code
+COPY *.py ./
+COPY startup.sh ./
+RUN chmod +x startup.sh
+
+# Create directory for model artifacts
+RUN mkdir -p /app/local_model
+
+# Expose port
+ENV PORT=8080
+EXPOSE 8080
+
+# Run startup script
+CMD ["./startup.sh"]

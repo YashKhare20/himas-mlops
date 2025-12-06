@@ -10,6 +10,10 @@ predictor = Predictor()
 def root():
     return {"status": "HIMAS prediction service running"}
 
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
 @app.post("/predict")
 def predict(payload: dict):
     """
