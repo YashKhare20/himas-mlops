@@ -1,0 +1,17 @@
+  # Build custom predictor container
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-predictor'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/himas-predictor:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/himas-predictor:latest'
+      - 'PoC/Model-Serving/vertex-predictor'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-predictor'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'gcr.io/$PROJECT_ID/himas-predictor'
