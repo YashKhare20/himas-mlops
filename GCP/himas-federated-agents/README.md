@@ -13,22 +13,20 @@
 
 ## Table of Contents
 
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [Architecture](#-architecture)
-- [Project Structure](#-project-structure)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Deployment](#-deployment)
-- [Usage](#-usage)
-- [Data Pipeline](#-data-pipeline)
-- [Privacy & Compliance](#-privacy--compliance)
-- [Model Performance](#-model-performance)
-- [Testing](#-testing)
-- [API Reference](#-api-reference)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Usage](#usage)
+- [Data Pipeline](#data-pipeline)
+- [Privacy & Compliance](#privacy--compliance)
+- [Model Performance](#model-performance)
+- [Testing](#testing)
+- [API Reference](#api-reference)
 
 ---
 
@@ -543,7 +541,6 @@ WHERE psa.assigned_hospital = 'hospital_a'
   "user_id": "clinician_001",
   "patient_fingerprint": "a3f2c1...",
   "risk_score": 0.765,
-  "model_version": "v1.3",
   "privacy_checks": {
     "k_anonymity": true,
     "differential_privacy": true,
