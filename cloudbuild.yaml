@@ -86,7 +86,22 @@ steps:
         LATEST_JSON=$$(ls -t evaluation_results/results/*.json | head -1)
         ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$LATEST_JSON)
         REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$LATEST_JSON)
-        echo "✅ Accuracy: $$ACC | Recall: $$REC"
+        
+        echo "Metrics - Accuracy: $$ACC | Recall: $$REC"
+        
+        # Check accuracy threshold (85%)
+        if (( $$(echo "$$ACC < 0.85" | bc -l) )); then
+          echo "❌ FAILED: Accuracy ($$ACC) is below threshold (0.85)"
+          exit 1
+        fi
+        
+        # Check recall threshold (70%)
+        if (( $$(echo "$$REC < 0.70" | bc -l) )); then
+          echo "❌ FAILED: Recall ($$REC) is below threshold (0.70)"
+          exit 1
+        fi
+        
+        echo "✅ Metrics passed - Accuracy: $$ACC | Recall: $$REC"
 
   # Bias detection
   - name: 'gcr.io/$PROJECT_ID/himas-training:$BUILD_ID'
@@ -156,6 +171,8 @@ steps:
         
         if (( $$(echo "$$ACC_DIFF < -0.02" | bc -l) )) || (( $$(echo "$$REC_DIFF < -0.02" | bc -l) )); then
           echo "❌ New model worse"
+          echo "Previous Accuracy: $$PREV_ACC | New Accuracy: $$NEW_ACC"
+          echo "Previous Recall: $$PREV_REC | New Recall: $$NEW_REC"
           exit 1
         fi
 
