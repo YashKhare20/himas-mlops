@@ -7,13 +7,14 @@
 
 **A privacy-preserving federated learning platform for ICU mortality prediction using Google's Agent Development Kit (ADK) and A2A Protocol.**
 
-![HIMAS Architecture](./agents-architecture.png)
+![HIMAS Architecture](./assets/agents-architecture.png)
 
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Screenshots & Demo](#screenshots--demo)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
@@ -23,6 +24,7 @@
 - [Deployment](#deployment)
 - [Usage](#usage)
 - [Data Pipeline](#data-pipeline)
+- [Observability](#observability)
 - [Privacy & Compliance](#privacy--compliance)
 - [Model Performance](#model-performance)
 - [Testing](#testing)
@@ -47,6 +49,28 @@ HIMAS (Healthcare Intelligence Multi-Agent System) is a comprehensive federated 
 2. **Case Consultation**: Query similar cases from peer hospitals without exposing PHI
 3. **Resource Optimization**: Match patient needs with available hospital resources
 4. **Transfer Coordination**: Facilitate patient transfers with capability matching
+
+---
+
+## Screenshots & Demo
+
+### Agent Chat Interface - Risk Assessment
+
+The ADK-powered chat interface allows clinicians to describe patients in natural language. The `clinical_decision_agent` processes the request and returns a structured risk assessment.
+
+![Risk Assessment UI](./assets/adk-ui-risk-assessment.png)
+
+*78-year-old emergency admission with septic shock - 94.1% mortality risk identified with key risk factors explained*
+
+---
+
+### Agent Chat Interface - Patient Transfer Coordination
+
+The Federated Coordinator's A2A interface handles cross-hospital patient transfers with full privacy guarantees.
+
+![Transfer Coordination UI](./assets/adk-ui-transfer.png)
+
+*ST-elevation MI patient transferred from Hospital A to Hospital B (Tertiary Care Center) with bed reservation confirmed*
 
 ---
 
@@ -104,7 +128,7 @@ HIMAS (Healthcare Intelligence Multi-Agent System) is a comprehensive federated 
 │                                                                           │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
 │  │  BigQuery   │  │Cloud Storage │  │  Vertex AI   │  │Cloud Logging │  │
-│  │ • Federated │  │ • Models     │  │ • Gemini 2.0 │  │ • HIPAA Logs │  │
+│  │ • Federated │  │ • Models     │  │ • Gemini 2.5 │  │ • HIPAA Logs │  │
 │  │ • Audit Logs│  │ • DVC Data   │  │   Flash      │  │ • Alerts     │  │
 │  └─────────────┘  └──────────────┘  └──────────────┘  └──────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -215,6 +239,7 @@ himas-agents/
 │   └── verify_import.py           # Import verification
 │
 ├── deploy_all_agents.sh           # One-click deployment script
+├── assets                         # Architecture diagrams and images
 ├── demo_check_model_prediction.md # Model validation documentation
 ├── demo_interaction.md            # Demo interaction examples
 ├── pyproject.toml                 # Project configuration
@@ -492,6 +517,135 @@ docker-compose up -d
 # Trigger DAG
 docker-compose run airflow-worker airflow dags trigger himas_bigquery
 ```
+---
+
+## Observability
+
+### Cloud Logging
+
+All agent activities are logged with structured metadata:
+
+![Cloud Logging](./assets/cloud-logging.png)
+
+**Log Structure:**
+```json
+{
+  "severity": "INFO",
+  "timestamp": "2025-12-05T14:55:11.935Z",
+  "resource": {
+    "type": "cloud_run_revision",
+    "labels": {
+      "service_name": "himas-hospital-a"
+    }
+  },
+  "jsonPayload": {
+    "message": "Cloud Logging connected for hospital_a",
+    "project": "erudite-carving-472018-r5",
+    "log_name": "himas-hospital_a-python"
+  }
+}
+```
+
+**Key Logged Events:**
+- Agent startup and initialization
+- Model loading from GCS
+- Prediction requests and responses
+- Cross-hospital A2A communications
+- Privacy compliance checks
+- Error conditions and exceptions
+
+### Cloud Trace
+
+Distributed tracing across all services:
+
+![Cloud Trace Explorer](./assets/cloud-trace-explorer.png)
+
+**Traced Operations:**
+| Operation | Description | Typical Duration |
+|-----------|-------------|------------------|
+| `/predict` | Mortality prediction | 85ms P50 |
+| `/model-monitor` | Model health check | 22s P50 |
+| `/run_sse` | A2A streaming | 5s P50 |
+| `/apps/hospital-a-agent` | Agent invocation | 79ms P50 |
+
+### BigQuery Audit Logs
+
+HIPAA-compliant audit trail stored in BigQuery:
+
+```sql
+-- Query recent audit events
+SELECT 
+    timestamp,
+    event_type,
+    user_id,
+    action,
+    resource_type,
+    risk_level,
+    phi_accessed
+FROM `erudite-carving-472018-r5.audit_logs.hospital_a_audit_log`
+WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
+ORDER BY timestamp DESC
+```
+
+**Audit Table Schema:**
+| Column | Type | Description |
+|--------|------|-------------|
+| timestamp | TIMESTAMP | Event time |
+| event_type | STRING | prediction, transfer, query, etc. |
+| user_id | STRING | Requesting user/agent |
+| action | STRING | Action performed |
+| resource_type | STRING | Resource accessed |
+| risk_level | STRING | LOW, MEDIUM, HIGH, CRITICAL |
+| phi_accessed | BOOLEAN | Whether PHI was accessed |
+| patient_fingerprint | STRING | Anonymized patient ID |
+| request_metadata | JSON | Full request details |
+
+### Email Notifications
+
+Automated alerts for pipeline status and critical events:
+
+**Notification Types:**
+| Type | Trigger | Recipients |
+|------|---------|------------|
+| Transfer Alert | Patient transfer initiated | Clinical team |
+| Pipeline Success | DAG completes | Data team |
+| Pipeline Failure | Task error | Data team |
+| Pipeline Success | CI/CD completes | Data team |
+| Pipeline Failure | CI/CD error | Data team |
+
+### Email Notifications - Transfer Alerts
+
+Automated email alerts notify all team members when high-urgency patient transfers are initiated.
+
+![Transfer Email Alert](./assets/email-transfer-alert.png)
+
+*HIPAA-compliant transfer alert with bed reservation confirmation and privacy guarantees*
+
+<details>
+<summary>View Full Email Details</summary>
+
+**Subject:** HIMAS Transfer Alert [HIGH]: HOSPITAL_A → HOSPITAL_B | transfer_20251206_040217
+
+**Transfer Details:**
+| Field | Value |
+|-------|-------|
+| Transfer ID | transfer_20251206_040217 |
+| From | Hospital A (Community Hospital) |
+| To | Hospital B (Tertiary Care Center) |
+| Transfer Reason | advanced_cardiac_care, infectious_disease_consult |
+| Patient Age Bucket | 75-80 |
+| Risk Level | HIGH |
+| Est. Transport Time | 45 minutes |
+| Bed Reserved | ICU_BED_1 in MICU |
+
+**Privacy Compliance:**
+- Patient data anonymized (HIPAA Safe Harbor)
+- K-anonymity (k ≥ 5)
+- Differential privacy (ε = 0.1)
+- Full audit trail maintained
+
+</details>
+
 
 ---
 
