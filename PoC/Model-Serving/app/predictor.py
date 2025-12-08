@@ -21,38 +21,41 @@ class Predictor:
 
     def preprocess(self, input_dict: dict):
         """Convert raw input into model-ready numerical array."""
-        print(f"Input received: {list(input_dict.keys())}")  # DEBUG
+        # Separate numeric and categorical values
+        numeric_values = []
+        categorical_values = []
         
-        processed = []
         for feature in self.feature_order:
-            if feature not in input_dict:
-                processed.append(0)
-                continue
-            value = input_dict[feature]
+            value = input_dict.get(feature, None)
             
-            # numeric
+            # Numeric features
             if feature in self.scaler.feature_names_in_:
-                processed.append(float(value))
-            # categorical
+                if value is None:
+                    numeric_values.append(0)  # Use 0 for missing (should be median ideally)
+                else:
+                    numeric_values.append(float(value))
+            
+            # Categorical features
             elif feature in self.label_encoders:
                 le = self.label_encoders[feature]
-                processed.append(
-                    le.transform([value])[0] if value in le.classes_ else -1
-                )
+                if value is None:
+                    categorical_values.append(-1)  # Missing category
+                elif value in le.classes_:
+                    categorical_values.append(le.transform([value])[0])
+                else:
+                    categorical_values.append(-1)  # Unknown category
             else:
-                processed.append(0)
-
-        # Scale numeric features
-        num_feature_count = len(self.scaler.feature_names_in_)
-        numeric = np.array(processed[:num_feature_count]).reshape(1, -1)
-        scaled_numeric = self.scaler.transform(numeric)[0].tolist()
-        categorical = processed[num_feature_count:]
+                # Feature not in scaler or encoders
+                categorical_values.append(0)
         
-        result = np.array([scaled_numeric + categorical])
-        print(f"Preprocessed shape: {result.shape}")  # DEBUG
-        print(f"Sample values: {result[0][:5]}")  # DEBUG
+        # Scale numeric features
+        numeric_array = np.array(numeric_values).reshape(1, -1)
+        scaled_numeric = self.scaler.transform(numeric_array)[0].tolist()
+        
+        # Combine scaled numeric + encoded categorical
+        result = np.array([scaled_numeric + categorical_values])
+        
         return result
-
     def predict(self, payload: dict):
         X = self.preprocess(payload)
         prob = self.model.predict(X)[0][0]
