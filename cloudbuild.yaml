@@ -19,6 +19,7 @@ steps:
     env:
       - 'GCP_PROJECT_ID=$PROJECT_ID'
       - 'DATASET_ID=federated'
+      - 'DATASET_ID=federated'
       - 'MLFLOW_TRACKING_URI=file:///workspace/mlruns'
       - 'MLFLOW_EXPERIMENT_NAME=himas-federated-training'
     entrypoint: 'bash'
@@ -27,6 +28,7 @@ steps:
       - |
         cp -r /workspace/PoC/Model-Pipeline/himas-model-pipeline/* /app/
         cd /app
+        echo "Starting training with federated..."
         echo "Starting training..."
         flwr run .
         mkdir -p /workspace/models
@@ -56,6 +58,7 @@ steps:
     id: 'evaluate-model'
     env:
       - 'GCP_PROJECT_ID=$PROJECT_ID'
+      - 'DATASET_ID=federated'
       - 'DATASET_ID=federated'
       - 'MLFLOW_TRACKING_URI=file:///workspace/mlruns'
       - 'MLFLOW_EXPERIMENT_NAME=himas-federated-eval'
@@ -109,6 +112,7 @@ steps:
     env:
       - 'GCP_PROJECT_ID=$PROJECT_ID'
       - 'DATASET_ID=federated'
+      - 'DATASET_ID=federated'
     entrypoint: 'bash'
     args:
       - '-c'
@@ -158,10 +162,13 @@ steps:
         
         mkdir -p prev_results
         gsutil cp -r gs://himas-mlops-models/evaluation-results/$$PREV_TIMESTAMP/evaluation_results/results/ prev_results/ || {
+          echo "Could not fetch previous results. Proceeding with current model."
+        gsutil cp -r gs://himas-mlops-models/evaluation-results/$$PREV_TIMESTAMP/evaluation_results/results/ prev_results/ || {
           echo "Could not fetch previous results."
           exit 0
         }
         
+        PREV_LATEST=$$(find prev_results -name "*.json" -type f | head -1)
         PREV_LATEST=$$(find prev_results -name "*.json" -type f | head -1)
         PREV_ACC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .accuracy' $$PREV_LATEST)
         PREV_REC=$$(jq '.metrics_by_hospital[] | select(.hospital=="AGGREGATED") | .recall' $$PREV_LATEST)

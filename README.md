@@ -786,4 +786,4 @@ Expected Improvements with Full Data:
 
 **Conclusion:** This POC successfully demonstrated the bias detection and mitigation methodology using Fairlearn and SMOTE. The identified limitations (small sample size, insufficient female deaths, post-processing failures) would be resolved by transitioning to the full MIMIC-IV dataset containing 100× more samples. The workflows and findings from this study provide the foundation for full-scale clinical AI development.
 
-**Note:** This POC study on demo data (275 admissions) establishes methodology for full-scale implementation on complete MIMIC-IV dataset (500,000+ admissions).
+**Note:** This POC study on demo data (275 admissions) establishes methodology for full-scale implementation on complete MIMIC-IV dataset (500,000+ admissions).# Deployment demo
