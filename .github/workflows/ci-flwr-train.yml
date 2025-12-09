@@ -3,8 +3,12 @@ name: CI - Flower Model Pipeline
 on:
   push:
     branches: [ main, feature_manjusha ]
+    paths:
+      - 'PoC/Model-Pipeline/**'
   pull_request:
     branches: [ main, feature_manjusha ]
+    paths:
+      - 'PoC/Model-Pipeline/**'
 
 jobs:
   build-train-validate:
