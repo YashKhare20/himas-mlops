@@ -6,7 +6,6 @@
 [![Airflow 3.1](https://img.shields.io/badge/Airflow-3.1.0-017CEE.svg)](https://airflow.apache.org/)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00.svg)](https://www.tensorflow.org/)
 [![Flower FL](https://img.shields.io/badge/Flower-1.14-E91E63.svg)](https://flower.ai/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
 ---
 
