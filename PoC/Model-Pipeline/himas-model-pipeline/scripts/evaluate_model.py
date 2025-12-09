@@ -456,6 +456,28 @@ class ModelEvaluator:
         logger.info("  Test data will be transformed using these statistics")
         logger.info("="*70)
 
+        # ---------------- SAVE PREPROCESSING ARTIFACTS ---------------- 
+        artifact_dir = Path("models/preprocessing")
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+
+        import pickle
+
+        # Save scaler
+        with open(artifact_dir / "scaler.pkl", "wb") as f:
+            pickle.dump(self.preprocessor.numerical_scaler, f)
+
+        # Save label encoders
+        with open(artifact_dir / "label_encoders.pkl", "wb") as f:
+            pickle.dump(self.preprocessor.label_encoders, f)
+
+        # Save feature order 
+        feature_order = NUMERICAL_FEATURES + CATEGORICAL_FEATURES
+        with open(artifact_dir / "feature_order.pkl", "wb") as f:
+            pickle.dump(feature_order, f)
+
+        logger.info(f"Saved preprocessing artifacts to {artifact_dir}")
+
+
     def load_test_data(self, hospital: str) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
         """
         Load and preprocess test data for specific hospital.

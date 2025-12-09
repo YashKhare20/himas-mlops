@@ -1,0 +1,374 @@
+{
+  "timestamp": "2025-12-06T18:35:36.792104",
+  "service_url": "https://himas-prediction-service-1089649594993.us-central1.run.app",
+  "num_samples": 50,
+  "metrics": {
+    "accuracy": 0.88,
+    "recall": 0.6666666666666666,
+    "precision": 0.5,
+    "correct": 44,
+    "incorrect": 6
+  },
+  "by_outcome": {
+    "0": {
+      "correct": 40,
+      "total": 44
+    },
+    "1": {
+      "correct": 4,
+      "total": 6
+    }
+  },
+  "predictions": [
+    {
+      "sample": 1,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 2,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 3,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 4,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 5,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 6,
+      "ground_truth": 0,
+      "prediction": 1,
+      "probability": 0.0,
+      "correct": false
+    },
+    {
+      "sample": 7,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 8,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 9,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 10,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 11,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 12,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 13,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 14,
+      "ground_truth": 1,
+      "prediction": 1,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 15,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 16,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 17,
+      "ground_truth": 0,
+      "prediction": 1,
+      "probability": 0.0,
+      "correct": false
+    },
+    {
+      "sample": 18,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 19,
+      "ground_truth": 1,
+      "prediction": 1,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 20,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 21,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 22,
+      "ground_truth": 0,
+      "prediction": 1,
+      "probability": 0.0,
+      "correct": false
+    },
+    {
+      "sample": 23,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 24,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 25,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 26,
+      "ground_truth": 1,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": false
+    },
+    {
+      "sample": 27,
+      "ground_truth": 0,
+      "prediction": 1,
+      "probability": 0.0,
+      "correct": false
+    },
+    {
+      "sample": 28,
+      "ground_truth": 1,
+      "prediction": 1,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 29,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 30,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 31,
+      "ground_truth": 1,
+      "prediction": 1,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 32,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 33,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 34,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 35,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 36,
+      "ground_truth": 1,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": false
+    },
+    {
+      "sample": 37,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 38,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 39,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 40,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 41,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 42,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 43,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 44,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 45,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 46,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 47,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 48,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 49,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    },
+    {
+      "sample": 50,
+      "ground_truth": 0,
+      "prediction": 0,
+      "probability": 0.0,
+      "correct": true
+    }
+  ]
+}
