@@ -35,6 +35,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Project Structure](#project-structure)
 - [Key Features](#key-features)
 - [Architecture Components](#architecture-components)
   - [1. Data Pipeline](#1-data-pipeline)
@@ -67,6 +68,26 @@ HIMAS addresses these challenges through:
 - **Privacy-Preserving Queries**: K-anonymity and differential privacy for cross-hospital consultations
 - **Multi-Agent AI**: Intelligent agents for clinical decision support, resource allocation, and transfer coordination
 - **End-to-End MLOps**: Automated pipelines from data ingestion to model deployment
+
+## Project Structure
+
+```
+.
+├── build-alert.yaml.           # Alert for Cloud Build pipeline status (success/failure/timeout)
+├── cloudbuild.yaml             # Cloud Build with Cloud Run Deployment for ML pipeline
+├── GCP                         # GCP Deployment
+│   ├── flower-numpy-example    # Flower Official Quickstart
+│   └── himas-federated-agents  # HIMAS Agents
+├── himas_architecture.png      # HIMAS Architecture Diagram
+├── LICENSE
+├── PoC                         # Local Testing + GCP Deployment
+│   ├── Bias Detection
+│   ├── Data-Pipeline
+│   ├── main.py
+│   ├── Model-Pipeline
+│   └── Model-Serving
+└── README.md                      # This file
+```
 
 ---
 
