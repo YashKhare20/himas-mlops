@@ -162,8 +162,6 @@ steps:
         
         mkdir -p prev_results
         gsutil cp -r gs://himas-mlops-models/evaluation-results/$$PREV_TIMESTAMP/evaluation_results/results/ prev_results/ || {
-          echo "Could not fetch previous results. Proceeding with current model."
-        gsutil cp -r gs://himas-mlops-models/evaluation-results/$$PREV_TIMESTAMP/evaluation_results/results/ prev_results/ || {
           echo "Could not fetch previous results."
           exit 0
         }
