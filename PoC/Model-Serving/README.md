@@ -109,6 +109,7 @@ production_monitoring.model_performance (
   tn INT64   -- True negatives
 )
 ```
+![Automated Monitoring](Screenshots/monitoring.png)
 
 ## Testing the Deployment
 
@@ -125,7 +126,8 @@ curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   ${SERVICE_URL}/health
 ```
 
-**Expected:** `{"status":"healthy"}`
+![Health Check](Screenshots/health_check.png)
+
 
 ### 2. Make a Prediction
 
@@ -144,6 +146,8 @@ curl -X POST \
 ```
 
 **Expected:** `{"prediction": 0 or 1, "probability": 0.0-1.0}`
+
+![Prediction](Screenshots/prediction.png)
 
 ### 3. Test with Real Data
 
@@ -165,7 +169,10 @@ curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   https://us-central1-${PROJECT_ID}.cloudfunctions.net/model-monitor
 ```
 
+![monitoring](Screenshots/monitoring.png)
 ---
+
+
 
 ## Triggering Retraining
 
@@ -204,6 +211,8 @@ The pipeline includes **automatic rollback protection**:
 - Thresholds: `cloudbuild.yaml` lines 91-110 (`validate-metrics`)
 - Comparison: `cloudbuild.yaml` lines 129-169 (`compare-with-previous`)
 - Bias: `cloudbuild.yaml` lines 112-127 (`bias-detection`)
+
+![Retraining](Screenshots/retraining.png)
 
 ---
 
@@ -273,6 +282,8 @@ ORDER BY timestamp DESC
 - Success/failure status
 - Build logs for debugging
 
+![Build-History](Screenshots/successful_build.png)
+
 ---
 
 ## Key Endpoints
@@ -317,7 +328,10 @@ gs://himas-mlops-models/
 └── model-registry/
     ├── {timestamp}.json                   # Model card (metadata)
     └── latest.txt                         # Pointer to latest model
+
 ```
+
+![model storage](Screenshots/model_storage.png)
 
 **Model Card Contents:**
 - Model version and timestamp
