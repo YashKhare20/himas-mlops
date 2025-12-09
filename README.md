@@ -12,7 +12,7 @@
 ## Demo Video
 
 <p align="center">
-  <a href="YOUR_VIDEO_LINK_HERE">
+  <a href="https://youtu.be/GAdGnc6KZWA">
     <img src="https://img.shields.io/badge/▶%20Watch%20Demo-YouTube-red?style=for-the-badge&logo=youtube" alt="Watch Demo Video"/>
   </a>
 </p>
@@ -506,6 +506,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <p align="center">
   🏥 Federated Learning • 🔒 Privacy-First • 🤖 Multi-Agent AI • ☁️ Cloud-Native
 </p>
-# Deployment demo
-# Deployment demo
-# Deployment demo
